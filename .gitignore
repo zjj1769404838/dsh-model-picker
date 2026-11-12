@@ -1,0 +1,16 @@
+# 依赖（本插件 node_modules 是指向 dsh-prompt-optimizer 的符号链接，不入库）
+node_modules
+
+# 运行时/排查工作目录
+tmp/
+.work/
+.dsh-ops/
+data/
+
+# 误建空文件
+nul
+
+# 备份
+*.bak
+.bak/
+*~
