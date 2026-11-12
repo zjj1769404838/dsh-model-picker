@@ -1,0 +1,37 @@
+# @zjjlivingfree/dsh-model-picker bundle patch
+#
+# scoped 包名在 YAML 里必须加引号，否则 `@` 开头会被解析成非法标量。
+# id 用短名即可（宿主只要求同 profile 内唯一）。
+#
+# 全部配置项都有默认值，下面注释掉的 config 块是可选覆盖示例
+# （改完需重启 dsh 进程生效；配置项说明见 README.md）。
+- insert:
+    - id: model-auto-select
+      name: '@zjjlivingfree/dsh-model-picker'
+      # config:
+      #   # 用户默认模型；留空 = 沿用宿主 agentDefaultModel.currentSelection()
+      #   defaultModel: null
+      #   # 同一模型最多重试几次（不含首次尝试）。默认 2 ⇒ 单模型最多 3 次尝试。
+      #   maxRetries: 2
+      #   # 每次重试/切换前的等待，避免打满上游
+      #   retryDelayMs: 800
+      #   # 同类型候选的 provider 优先顺序（未列出的排在后面，按宿主 listProviders 顺序）
+      #   providerOrder: []
+      #   # 单个模型的优先顺序，写成 'provider/model'
+      #   modelOrder: []
+      #   # 自动切换时优先选未被会话使用的模型
+      #   preferIdle: true
+      #   # 全部不可用后的冷却时长（毫秒），默认 30 分钟
+      #   cooldownMs: 1800000
+      #   # 冷却期内抑制目录刷新，避免高频重试
+      #   cooldownRefreshBlocked: true
+      #   # 模型目录缓存 TTL
+      #   catalogTtlMs: 60000
+      #   # 占用状态兜底刷新间隔（事件驱动的即时刷新不受此限制）
+      #   occupancyRefreshMs: 5000
+      #   # 只在这些错误码上切换；空数组 = 除 aborted 外都算
+      #   switchOnCodes: []
+      #   # 同类型耗尽后是否允许跨类型兜底（默认不允许，直接进冷却）
+      #   crossClassFallback: false
+      #   # 总开关
+      #   enabled: true

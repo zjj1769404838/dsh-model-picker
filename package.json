@@ -1,0 +1,70 @@
+{
+  "name": "@zjjlivingfree/dsh-model-picker",
+  "version": "0.1.0",
+  "description": "替换 dsh 默认模型选择逻辑：模型列表分类（纯文本/多模态）与来源标注、用户默认模型、可配置重试、同类型模型自动切换、会话占用规避、全部不可用后 30 分钟冷却恢复，全流程可判定并落 plugin record 日志。",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./core": "./lib/core.js",
+    "./package.json": "./package.json",
+    "./cordis.patch.yml": "./cordis.patch.yml"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-slots",
+        "@deepseek-ai/dsh-client-ui-model-selection",
+        "@deepseek-ai/dsh-api-session-controller",
+        "@deepseek-ai/dsh-session",
+        "@deepseek-ai/dsh-api-remotes"
+      ],
+      "platform": "web"
+    },
+    "manifestVersion": 1
+  },
+  "scripts": {
+    "bundle": "node scripts/build.mjs",
+    "build": "node scripts/build.mjs",
+    "test": "node --import ./scripts/host-resolve.mjs scripts/test-auto-select.mjs",
+    "test:all": "node --import ./scripts/host-resolve.mjs scripts/test-auto-select.mjs && node scripts/test-client-dom.mjs && node --import ./scripts/host-resolve.mjs scripts/smoke-http.mjs && node scripts/smoke-probe.mjs && node --import ./scripts/host-resolve.mjs scripts/smoke-plugin-record.mjs",
+    "test:client": "node scripts/test-client-dom.mjs",
+    "smoke:http": "node --import ./scripts/host-resolve.mjs scripts/smoke-http.mjs",
+    "smoke:probe": "node scripts/smoke-probe.mjs",
+    "smoke:record": "node --import ./scripts/host-resolve.mjs scripts/smoke-plugin-record.mjs"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  },
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "dsh",
+    "model",
+    "model-selection",
+    "failover",
+    "retry",
+    "cooldown",
+    "multimodal"
+  ],
+  "engines": {
+    "node": ">=20",
+    "dsh": ">=0.2.0-rc.1 <0.3.0-0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "author": {
+    "name": "zjj"
+  }
+}
