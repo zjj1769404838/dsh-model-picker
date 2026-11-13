@@ -1979,6 +1979,10 @@ function createHandler() {
           probeUnavailable.delete(entryKey)
         }
         saveProbeFile()
+        // 探测结果改变了 probeUnavailable 集合，目录快照里的 unavailableModels 会随之变化。
+        // 必须失效目录缓存，否则 /catalog 继续返回探测前的旧快照，下拉会留下刚被标「不可调」的模型。
+        catalogAt = 0
+        void getCatalog(true)
         log({
           ts: Date.now(),
           event: 'probe',

@@ -191,6 +191,24 @@ try {
   }
 
   // 3) 流中断：text-b 只有内容片没有 finish → 判定可用（模型确实响应了）
+  // 2b) 探测后目录快照立即反映不可调：/test-model 写 probeUnavailable 后必须失效 catalog 缓存，
+  //     否则 /catalog（不带 refresh）仍返回探测前的旧快照，下拉会留下刚被标「不可调」的模型。
+  {
+    host.setFailMmA(true)
+    const before = await call(`${ROUTE}/catalog`)
+    const beforeHas = Array.isArray(before.json?.unavailableModels) && before.json.unavailableModels.includes(modelKey('alpha', 'mm-a'))
+    check('探测前：目录快照不含该模型（基线）', before.status === 200 && !beforeHas, `${before.status} ${JSON.stringify(before.json?.unavailableModels ?? null)}`)
+    await post({ provider: 'alpha', model: 'mm-a' })
+    const after = await call(`${ROUTE}/catalog`)
+    const afterHas = Array.isArray(after.json?.unavailableModels) && after.json.unavailableModels.includes(modelKey('alpha', 'mm-a'))
+    check('探测后：目录快照立即含不可调模型（缓存已失效，不等 TTL）', after.status === 200 && afterHas, `${after.status} ${JSON.stringify(after.json?.unavailableModels ?? null)}`)
+    host.setFailMmA(false)
+    await post({ provider: 'alpha', model: 'mm-a' })
+    const cleared = await call(`${ROUTE}/catalog`)
+    const clearedHas = Array.isArray(cleared.json?.unavailableModels) && cleared.json.unavailableModels.includes(modelKey('alpha', 'mm-a'))
+    check('重测通过后：目录快照立即移出不可调（缓存同样即时失效）', cleared.status === 200 && !clearedHas, `${cleared.status} ${JSON.stringify(cleared.json?.unavailableModels ?? null)}`)
+  }
+
   {
     const r = await post({ provider: 'beta', model: 'text-b' })
     check('流中断但有内容片 → ok:true（模型真实响应过）', r.status === 200 && r.json?.ok === true && r.json?.sample === 'partial', JSON.stringify(r.json))

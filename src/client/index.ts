@@ -207,6 +207,13 @@ interface ProbeResult {
  */
 const probeResults = new Map<string, ProbeResult>()
 
+/**
+ * 分组一键测试的汇总：key = 分组 id（与按钮 data-mas-group-test 一致）。
+ * 汇总同样必须放在模块级表——loadCatalog 强制刷新会重建整目录（含组测试按钮回默认文案），
+ * 只有从这份表回填，组汇总「✓2 ✗1」才不会在重渲染后被冲掉。
+ */
+const groupProbeSummaries = new Map<string, { ok: number; fail: number; total: number }>()
+
 function probeKey(provider: string, model: string): string {
   return `${provider}/${model}`
 }
@@ -1470,6 +1477,8 @@ function groupHead(label: string, note: string, id: string, list: CatalogEntry[]
   ) as HTMLButtonElement
   test.disabled = list.length === 0
   test.addEventListener('click', () => { void testGroupViaRoute(list, test) })
+  // 目录重渲染会重建该按钮，从模块级表回填既有汇总，避免「测试全组」把上次结果冲掉。
+  applyGroupProbeSummary(test)
   head.appendChild(test)
   return head
 }
@@ -2573,6 +2582,9 @@ async function testModelViaRoute(provider: string, model: string, button: HTMLBu
   button.disabled = false
   // 同一个模型可能同时出现在别的分组段里，一并回填。
   repaintProbeButtons()
+  // 探测会改变服务端 probeUnavailable 集合：不可调的模型应立即从下拉移除，而不是等 TTL 过期。
+  // 探测后强制刷新目录快照，让下拉立即反映最新 unavailableModels（否则按钮已标「不可调」、下拉却还留着它）。
+  void loadCatalog({ force: true })
 }
 
 /** 分组一键测试的并发上限：避免一次点开把上游打满。 */
@@ -2609,7 +2621,24 @@ async function testGroupViaRoute(list: CatalogEntry[], button: HTMLButtonElement
   button.title = '本组 ' + total + ' 个模型测试完成：通过 ' + okCount + '，失败 ' + failCount + '（探测失败=传输/环境故障，模型仍在下拉可正常选择；不可调=模型级故障，已从下拉移除）'
   button.style.color = failCount === 0 ? '#4a9d5b' : (okCount === 0 ? '#d9534f' : TOK.warn)
   button.disabled = false
+  // 汇总写进模块级表，loadCatalog 强制刷新重建按钮后还能从表里回填（否则汇总被默认文案冲掉）。
+  const groupId = button.getAttribute('data-mas-group-test') ?? ''
+  if (groupId !== '') groupProbeSummaries.set(groupId, { ok: okCount, fail: failCount, total })
   repaintProbeButtons()
+  // 批量探测同样会改变服务端 probeUnavailable 集合：不可调模型应立即从下拉移除。
+  // 整组测完强制刷新目录快照，让下拉立即反映最新 unavailableModels。
+  void loadCatalog({ force: true })
+}
+
+/** 把分组一键测试的汇总渲染到组测试按钮上（从 groupProbeSummaries 表回填）。 */
+function applyGroupProbeSummary(button: HTMLButtonElement): void {
+  const groupId = button.getAttribute('data-mas-group-test') ?? ''
+  const summary = groupProbeSummaries.get(groupId)
+  if (summary === undefined) return
+  button.textContent = '✓' + summary.ok + ' ✗' + summary.fail
+  button.title = '本组 ' + summary.total + ' 个模型测试完成：通过 ' + summary.ok + '，失败 ' + summary.fail + '（探测失败=传输/环境故障，模型仍在下拉可正常选择；不可调=模型级故障，已从下拉移除）'
+  button.style.color = summary.fail === 0 ? '#4a9d5b' : (summary.ok === 0 ? '#d9534f' : TOK.warn)
+  button.disabled = false
 }
 
 function currentLabel(current: any): string {
