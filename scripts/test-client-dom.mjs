@@ -691,13 +691,15 @@ const server = http.createServer(async (req, res) => {
 
     const label = `${body.provider}/${body.model}`
 
-    const fail = (server.__probeFailModels ?? []).includes(body.model)
+    const fail = (server.__probeFailModels ?? []).includes(body.model) || (server.__probeInfraModels ?? []).includes(body.model)
 
     res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' })
 
     if (fail) {
 
-      res.end(JSON.stringify({ ok: false, provider: body.provider, model: body.model, ms: 12, error: '模拟上游 401' }))
+      const isInfra = (server.__probeInfraModels ?? []).includes(body.model)
+
+      res.end(JSON.stringify({ ok: false, provider: body.provider, model: body.model, ms: 12, error: '模拟上游 401', kind: isInfra ? 'infra' : 'model' }))
 
     } else {
 
@@ -2658,6 +2660,7 @@ await test('分组一键测试：组内部分模型不可调时，汇总与失�
   serverConfig.customGroups = []
   await boot()
   server.__probeFailModels = ['b-mm-1'] // boot() 会清空，必须在其后设置
+  server.__probeInfraModels = [] // 本用例只覆盖模型级失败（kind=model）
   await page.evaluate(() => window.__renderSection())
   await page.waitForTimeout(150)
 
@@ -2680,6 +2683,37 @@ await test('分组一键测试：组内部分模型不可调时，汇总与失�
   assert.equal(state.probes.find((p) => p.key === 'alpha/a-mm-1')?.text, '✓ 0.0s', `成功的模型应回填成功：${JSON.stringify(state.probes)}`)
   assert.equal(state.probes.find((p) => p.key === 'beta/b-mm-1')?.text, '✗ 不可调', `不可调的模型应回填失败：${JSON.stringify(state.probes)}`)
   assert.deepEqual(pageErrors, [], `部分失败不应有未捕获异常：${JSON.stringify(pageErrors)}`)
+})
+
+
+await test('探测结果展示语义：infra 类故障（传输/环境）标「✗ 探测失败」并注明仍可用', async () => {
+  serverConfig.customGroups = []
+  await boot()
+  server.__probeFailModels = [] // boot() 会清空，必须在其后设置
+  server.__probeInfraModels = ['b-mm-1']
+  await page.evaluate(() => window.__renderSection())
+  await page.waitForTimeout(150)
+
+  await page.evaluate(() => document.querySelector('[data-mas-group-test="multimodal"]').click())
+  await page.waitForFunction(() => {
+    const b = document.querySelector('[data-mas-group-test="multimodal"]')
+    return b !== null && /^✓\d+ ✗\d+$/.test((b.textContent ?? '').trim())
+  }, undefined, { timeout: 5000 })
+
+  const state = await page.evaluate(() => {
+    const probes = [...document.querySelectorAll('[data-mas-probe]')].map((n) => ({
+      key: n.getAttribute('data-mas-probe'),
+      text: (n.textContent ?? '').trim(),
+      title: n.getAttribute('title') ?? '',
+    }))
+    return { probes }
+  })
+  const infraProbe = state.probes.find((p) => p.key === 'beta/b-mm-1')
+  assert.ok(infraProbe, `应能取到 beta/b-mm-1 的探测按钮：${JSON.stringify(state.probes)}`)
+  assert.equal(infraProbe.text, '✗ 探测失败', `infra 类失败应标「✗ 探测失败」：${JSON.stringify(state.probes)}`)
+  assert.match(infraProbe.title, /仍留在下拉|仍可选|探测失败/, `infra 失败的 title 应注明模型仍可用：${infraProbe.title}`)
+  assert.doesNotMatch(infraProbe.title, /模型级故障/, `infra 失败不应被表述为模型级故障：${infraProbe.title}`)
+  assert.deepEqual(pageErrors, [], `infra 类部分失败不应有未捕获异常：${JSON.stringify(pageErrors)}`)
 })
 
 

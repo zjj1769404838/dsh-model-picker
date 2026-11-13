@@ -1,6 +1,6 @@
 {
   "name": "@zjjlivingfree/dsh-model-picker",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "替换 dsh 默认模型选择逻辑：模型列表分类（纯文本/多模态）与来源标注、用户默认模型、可配置重试、同类型模型自动切换、会话占用规避、全部不可用后 30 分钟冷却恢复，全流程可判定并落 plugin record 日志。",
   "type": "module",
   "main": "lib/index.js",

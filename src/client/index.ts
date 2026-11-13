@@ -193,6 +193,11 @@ interface ProbeResult {
   ms: number
   error?: string
   sample?: string
+  /**
+   * 失败归因（0.1.2 起服务端回传）：'model' = 真实模型级故障（该模型已从下拉移除，标「不可调」）；
+   * 'infra' = 传输/环境故障（fail-open，模型仍留在下拉，标「探测失败」）；缺省视为 infra。
+   */
+  kind?: 'infra' | 'model'
 }
 
 /**
@@ -213,9 +218,16 @@ function applyProbeResult(button: HTMLButtonElement, result: ProbeResult): void 
     button.title = `连通性测试通过（${result.ms}ms）${result.sample ? `\n响应片段：${result.sample}` : ''}`
     button.style.color = '#4a9d5b'
   } else {
-    button.textContent = '✗ 不可调'
-    button.title = `连通性测试失败：${result.error ?? '未知错误'}`
-    button.style.color = '#d9534f'
+    const isModelLevel = result.kind === 'model'
+    if (isModelLevel) {
+      button.textContent = '✗ 不可调'
+      button.title = `连通性测试失败：${result.error ?? '未知错误'}（模型级故障，已从下拉移除）`
+      button.style.color = '#d9534f'
+    } else {
+      button.textContent = '✗ 探测失败'
+      button.title = `探测失败（传输/环境故障，模型仍留在下拉可正常选择）：${result.error ?? '未知错误'}`
+      button.style.color = '#c9a227'
+    }
   }
 }
 
@@ -2534,7 +2546,12 @@ async function runProbe(provider: string, model: string): Promise<ProbeResult> {
     })
     const payload: any = await response.json().catch(() => ({}))
     if (!response.ok || payload?.ok !== true) {
-      return { ok: false, ms: Number(payload?.ms) || 0, error: String(payload?.error ?? ('HTTP ' + response.status)) }
+      return {
+        ok: false,
+        ms: Number(payload?.ms) || 0,
+        error: String(payload?.error ?? ('HTTP ' + response.status)),
+        ...(payload?.kind === 'model' || payload?.kind === 'infra' ? { kind: payload.kind } : {}),
+      }
     }
     return {
       ok: true,
@@ -2589,7 +2606,7 @@ async function testGroupViaRoute(list: CatalogEntry[], button: HTMLButtonElement
   await Promise.all(Array.from({ length: Math.min(GROUP_PROBE_CONCURRENCY, total) }, () => worker()))
   const failCount = total - okCount
   button.textContent = '✓' + okCount + ' ✗' + failCount
-  button.title = '本组 ' + total + ' 个模型测试完成：通过 ' + okCount + '，不可调 ' + failCount
+  button.title = '本组 ' + total + ' 个模型测试完成：通过 ' + okCount + '，失败 ' + failCount + '（探测失败=传输/环境故障，模型仍在下拉可正常选择；不可调=模型级故障，已从下拉移除）'
   button.style.color = failCount === 0 ? '#4a9d5b' : (okCount === 0 ? '#d9534f' : TOK.warn)
   button.disabled = false
   repaintProbeButtons()

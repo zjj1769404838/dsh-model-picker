@@ -1999,6 +1999,7 @@ function createHandler() {
           ms: result.ms,
           ...(result.sample === undefined ? {} : { sample: result.sample }),
           ...(result.error === undefined ? {} : { error: result.error }),
+          ...(result.kind === undefined ? {} : { kind: result.kind }),
         })
         return
       }
