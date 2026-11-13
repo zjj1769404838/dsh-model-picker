@@ -51,10 +51,11 @@ function makeHost() {
             assert.equal(options.provider, config.provider)
             assert.equal(options.model, config.model)
             assert.equal(options.maxTokens, config.maxTokens, 'stream options 必须携带与 config 相同的 maxTokens（callConfigEquals 校验面）')
-            assert.ok(Array.isArray(options.messages) && options.messages.length === 1, '必须带 messages')
+            assert.ok(Array.isArray(options.messages) && options.messages.length === 2, '必须带 messages（system + user 两条，真机 m01436：workbuddy 网关要求首条为 system）')
+            assert.equal(options.messages[0]?.role, 'system', '首条消息必须是 system（网关格式要求，对齐宿主真实调用）')
             // 真机 m02715 回归：宿主 contentHasFile/Image 会对 content 调 .some()/遍历，
             // content 必须是结构化块数组而非裸字符串，否则抛 "content.some is not a function"。
-            const content = options.messages[0]?.content
+            const content = options.messages[1]?.content
             assert.ok(Array.isArray(content) && content[0]?.type === 'text' && typeof content[0]?.text === 'string', 'message.content 必须是 [{type:"text",text}] 结构化块数组（宿主契约）')
             if (config.model === 'mm-a' && failMmA) {
               yield { type: 'finish', reason: { kind: 'error', failure: { code: 'UPSTREAM_401', message: '上游 401：api key 无效' } } }

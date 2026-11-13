@@ -1667,9 +1667,15 @@ async function runModelProbe(provider: string, model: string): Promise<{ ok: boo
     // 宿主消息契约：content 是结构化块数组（[{type:'text', text}]），不是裸字符串；
     // dsh-llm 的 contentHasFile/contentHasImage 会对每条消息 content 调 .some()/遍历（dsh-llm:593-605），
     // 裸字符串会抛 "content.some is not a function"（真机 m02715 实证）。
+    // 首条消息必须是 system：真机 m01436 实证 workbuddy 网关以
+    // 「请求被拦截，请重新发送 first message is not system prompt」拒收 user 开头的请求；
+    // 宿主真实调用（agent-loop）本就先发 system，探测对齐同一形状，避免把网关格式要求误判成模型不可用。
     const stream = call.stream({
       ...call.config,
-      messages: [{ role: 'user', content: [{ type: 'text', text: 'ping' }] }],
+      messages: [
+        { role: 'system', content: [{ type: 'text', text: 'You are a connectivity probe. Reply with a short acknowledgment.' }] },
+        { role: 'user', content: [{ type: 'text', text: 'ping' }] },
+      ],
       signal: controller.signal,
     })
     let sample = ''
