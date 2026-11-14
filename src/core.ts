@@ -287,6 +287,8 @@ export interface ModelEntry {
    * 单位 = tokens。仅当宿主披露（when disclosed）才有值；否则为 undefined，绝不猜测。
    */
   contextWindow?: number
+  /** 推理等级元数据：仅当宿主 resolveModelInfo 披露（reasoning）才有值；未披露绝不猜测。 */
+  reasoning?: { efforts: Array<{ id: string; name: string; description?: string }>; defaultEffort?: string }
 }
 
 export interface CatalogFailure {
@@ -563,6 +565,8 @@ export interface Selection {
   orderIndex: number
   idle: boolean
   owners: string[]
+  /** 手动选择时指定的推理等级 id（须为该模型声明过的 effort）；仅本次选择生效。 */
+  reasoningEffort?: string
 }
 
 function selectionOf(entry: ModelEntry, reasonCode: ReasonCode, reason: string, orderIndex: number, occupancy: OccupancyMap): Selection {

@@ -1,1 +1,240 @@
-IyEvdXNyL2Jpbi9lbnYgbm9kZQovLyDlpZHnuqbkuIDoh7TmgKflhpLng5/vvJrnlKjjgIzlv6Dlrp7kuo7nnJ/lrp4gZHNoLWxsbSDmtL7lj5HlpZHnuqbjgI3nmoTlrr/kuLvmm7/ouqvpqbHliqjnnJ/lrp4gbGliL2luZGV4LmpzIOeahAovLyAvdGVzdC1tb2RlbCDnq6/ngrnvvIzor4HmmI7mj5Lku7blr7nlkIjms5UgbGxtIOWFqOmDqCBvazp0cnVl77yI5o6S6Zmk5o+S5Lu26YC76L6R6ZSZ77yJ77yM5bm25aSN546w44CM5YWo6YeP5LiN5Y+v6LCD44CNCi8vIOeahCBOT19BREFQVEVSIOetvuWQje+8iOa0vuWPkeWxgiBwcm92aWRlciDkuLLkuI7ms6jlhozplK7kuI3ljLnphY3ml7bmj5Lku7bpgI/lh7rnmoTnnJ/lrp7plJnor6/ljp/mlofvvInjgIIKLy8KLy8g55yf5a6eIGRzaC1sbG0g5rS+5Y+R5b2i54q277yI5p2l6IeqIHRtcC9ob3N0LXJvb3QvLi4uL2RzaC1sbG0vbGliL2luZGV4Lmpz77yJ77yaCi8vICAgLSBhZGFwdGVyczogTWFwPHByb3ZpZGVySWQsIHthZGFwdGVyLCBwcm92aWRlcjp7aWQsbmFtZX0sIHJldHJ5UG9saWN5fT7vvIxhZGFwdGVyIOWunueOsCBMbG1BZGFwdGVyCi8vICAgLSBwcmVwYXJlQ2FsbChjb25maWcsIHNpZ25hbCk6IHJlZ2lzdHJhdGlvbihwcm92aWRlcikg5pyq5ZG95LitIOKGkiB0aHJvdyBMbG1FcnJvcihgbm8gYWRhcHRlcgovLyAgICAgcmVnaXN0ZXJlZCBmb3IgcHJvdmlkZXIgIiR7cHJvdmlkZXJ9ImAsICdOT19BREFQVEVSJynvvJvlkb3kuK0g4oaSIGFkYXB0ZXIucHJlcGFyZUNhbGwocHJvdmlkZXIsIG1vZGVsLCBzaWduYWwpCi8vICAgLSDov5Tlm54geyBjb25maWcsIHN0cmVhbSB977yMc3RyZWFtKG9wdGlvbnMpIOS6p+WHuiB7ZGVsdGE6e3RleHR9fSAvIHt0eXBlOidmaW5pc2gnLHJlYXNvbjp7a2luZH19Ci8vICAgLSBsaXN0UHJvdmlkZXJzKCkgPSDms6jlhozplK7mmKDlsITvvJtsaXN0TW9kZWxzKHBpZCkgPSBhZGFwdGVyLmxpc3RNb2RlbHMocGlkKQovLwovLyDov5DooYzvvJpub2RlIHNjcmlwdHMvc21va2UtcHJvYmUtY29udHJhY3QubWpzICAgIO+8iENPTlRSQUNUX01PREU9b2sgfCBuby1hZGFwdGVyIHwgdHJhbnNwb3J0LWZhaWzvvIzpu5jorqQgb2vvvIkKaW1wb3J0IGh0dHAgZnJvbSAnbm9kZTpodHRwJwppbXBvcnQgeyBhcHBseSwgX190ZXN0IH0gZnJvbSAnLi4vbGliL2luZGV4LmpzJwppbXBvcnQgeyBtb2RlbEtleSB9IGZyb20gJy4uL2xpYi9jb3JlLmpzJwppbXBvcnQgeyBybVN5bmMsIHJlYWRGaWxlU3luYyB9IGZyb20gJ25vZGU6ZnMnCmltcG9ydCB7IGRpcm5hbWUgfSBmcm9tICdub2RlOnBhdGgnCgpwcm9jZXNzLm9uKCdleGl0JywgKCkgPT4gewogIHRyeSB7CiAgICBybVN5bmMoZGlybmFtZShfX3Rlc3QucHJvYmVGaWxlKSwgeyByZWN1cnNpdmU6IHRydWUsIGZvcmNlOiB0cnVlIH0pCiAgfSBjYXRjaCB7CiAgICAvKiDmuIXnkIblpLHotKXkuI3lvbHlk43nu5PorrogKi8KICB9Cn0pCgpjb25zdCBNT0RFID0gcHJvY2Vzcy5lbnYuQ09OVFJBQ1RfTU9ERSA/PyAnb2snCmNvbnN0IFBPUlQgPSBOdW1iZXIocHJvY2Vzcy5lbnYuU01PS0VfUE9SVCA/PyAzNDMyOSkKY29uc3QgUk9VVEUgPSBfX3Rlc3QuUk9VVEVfUFJFRklYCmNvbnN0IE9SSUdJTiA9IGBodHRwOi8vMTI3LjAuMC4xOiR7UE9SVH1gCgovLyDlv6Dlrp7pgILphY3lmajvvJrmqKHmi5/nnJ/lrp4gZHNoLWxsbSDnmoQgTGxtQWRhcHRlciDmjqXlj6PvvIhwcmVwYXJlQ2FsbCDov5Tlm57lkKsgc3RyZWFtIOeahOWPpeafhO+8ieOAggpmdW5jdGlvbiBtYWtlQWRhcHRlcihuYW1lLCBtb2RlbHMsIGZhaWxBbGwgPSBmYWxzZSwgdHJhbnNwb3J0RmFpbCA9IGZhbHNlKSB7CiAgcmV0dXJuIHsKICAgIG5hbWUsCiAgICBtb2RlbHMsCiAgICBsaXN0TW9kZWxzOiBhc3luYyAoKSA9PiBtb2RlbHMsCiAgICBhc3luYyBwcmVwYXJlQ2FsbChwcm92aWRlciwgbW9kZWwsIHNpZ25hbCkgewogICAgICAvLyB0cmFuc3BvcnQtZmFpbO+8muaooeaLn+ecn+WuniB1bmRpY2kg5Lyg6L6T5bGC5pWF6Zqc77yIbTAwNjQ2IOecn+acuuWkjeebmO+8midmZXRjaCBmYWlsZWQn77yJ44CCCiAgICAgIC8vIHByZXBhcmVDYWxsIOmYtuauteWNs+aKm+mUmSDihpIgcnVuTW9kZWxQcm9iZSDnmoQgY2F0Y2gg57uPIGNsYXNzaWZ5UHJvYmVGYWlsdXJlIOWIpOS4uiBpbmZyYeOAggogICAgICBpZiAodHJhbnNwb3J0RmFpbCkgewogICAgICAgIGNvbnN0IGVyciA9IG5ldyBFcnJvcignZmV0Y2ggZmFpbGVkJykKICAgICAgICBlcnIuY2F1c2UgPSBuZXcgRXJyb3IoJ25ldHdvcmsgcmVxdWVzdCBmYWlsZWQnKQogICAgICAgIHRocm93IGVycgogICAgICB9CiAgICAgIHJldHVybiB7CiAgICAgICAgY29uZmlnOiB7IHByb3ZpZGVyLCBtb2RlbCwgbWF4VG9rZW5zOiAzMiB9LAogICAgICAgIHN0cmVhbSgpIHsKICAgICAgICAgIHJldHVybiAoYXN5bmMgZnVuY3Rpb24qICgpIHsKICAgICAgICAgICAgaWYgKGZhaWxBbGwpIHsKICAgICAgICAgICAgICB5aWVsZCB7IHR5cGU6ICdmaW5pc2gnLCByZWFzb246IHsga2luZDogJ2Vycm9yJywgZmFpbHVyZTogeyBjb2RlOiAnVVBTVFJFQU1fNDAxJywgbWVzc2FnZTogJ+S4iua4uCA0MDHvvJphcGkga2V5IOaXoOaViCcgfSB9IH0KICAgICAgICAgICAgICByZXR1cm4KICAgICAgICAgICAgfQogICAgICAgICAgICB5aWVsZCB7IGRlbHRhOiB7IHRleHQ6ICdwb25nJyB9IH0KICAgICAgICAgICAgeWllbGQgeyB0eXBlOiAnZmluaXNoJywgcmVhc29uOiB7IGtpbmQ6ICdzdG9wJyB9IH0KICAgICAgICAgIH0pKCkKICAgICAgICB9LAogICAgICB9CiAgICB9LAogIH0KfQoKLy8g55yf5a6eIGRzaC1sbG0g5b2i54q255qE5a6/5Li777yaYWRhcHRlcnMgTWFw77yIcmVnaXN0cmF0aW9uPXthZGFwdGVyLC4uLn3vvIkrIHByZXBhcmVDYWxsIOa0vuWPkSArIE5PX0FEQVBURVIg5oqb6ZSZ44CCCi8vIOebruW9leaehOW7uueUqOeahOOAjOadpea6kOa4heWNleOAjShwcm92aWRlck1vZGVsUmVnaXN0cnkpIOS4juOAjOmAgumFjeWZqOazqOWGjOihqOOAjShhZGFwdGVycykg5Zyo55yf5a6eIGRzaC1sbG0g5Lit6ICm5ZCI77yMCi8vIOi/memHjOWcqCBuby1hZGFwdGVyIOaooeW8j+S4i+WIu+aEj+ino+iApu+8muebruW9leiDveW7uuWHuuadpe+8iGxpc3RQcm92aWRlcnMvbGlzdE1vZGVscyDmnInmlbDmja7vvInvvIzkvYYgcHJlcGFyZUNhbGwg5rS+5Y+R5ZG95Lit5LiN5YiwIOKGkiDlpI3njrDlhajph48gTk9fQURBUFRFUuOAggpmdW5jdGlvbiBtYWtlRmFpdGhmdWxIb3N0KHsgYWRhcHRlcnMsIHByb3ZpZGVyTW9kZWxSZWdpc3RyeSB9KSB7CiAgY29uc3QgbGxtID0gewogICAgX2FkYXB0ZXJzOiBhZGFwdGVycywKICAgIGxpc3RQcm92aWRlcnMoKSB7CiAgICAgIHJldHVybiBbLi4ucHJvdmlkZXJNb2RlbFJlZ2lzdHJ5LmVudHJpZXMoKV0ubWFwKChbaWQsIHJlZ10pID0+ICh7IGlkLCBuYW1lOiByZWcubmFtZSB9KSkKICAgIH0sCiAgICBsaXN0TW9kZWxzOiBhc3luYyAocGlkKSA9PiBwcm92aWRlck1vZGVsUmVnaXN0cnkuZ2V0KHBpZCk/Lm1vZGVscyA/PyBbXSwKICAgIHJlc29sdmVNb2RlbEluZm86IGFzeW5jIChwaWQsIG1pZCkgPT4gKHsgcHJvdmlkZXI6IHBpZCwgaWQ6IG1pZCwgbmFtZTogbWlkIH0pLAogICAgYXN5bmMgcHJlcGFyZUNhbGwoY29uZmlnLCBzaWduYWwpIHsKICAgICAgY29uc3QgcmVnaXN0cmF0aW9uID0gdGhpcy5fYWRhcHRlcnMuZ2V0KGNvbmZpZy5wcm92aWRlcikKICAgICAgaWYgKCFyZWdpc3RyYXRpb24pIHsKICAgICAgICBjb25zdCBlcnIgPSBuZXcgRXJyb3IoYG5vIGFkYXB0ZXIgcmVnaXN0ZXJlZCBmb3IgcHJvdmlkZXIgIiR7Y29uZmlnLnByb3ZpZGVyfSJgKQogICAgICAgIGVyci5jb2RlID0gJ05PX0FEQVBURVInCiAgICAgICAgdGhyb3cgZXJyCiAgICAgIH0KICAgICAgcmV0dXJuIHJlZ2lzdHJhdGlvbi5hZGFwdGVyLnByZXBhcmVDYWxsKGNvbmZpZy5wcm92aWRlciwgY29uZmlnLm1vZGVsLCBzaWduYWwpCiAgICB9LAogIH0KICBsZXQgaGFuZGxlciA9IG51bGwKICByZXR1cm4gewogICAgZ2V0IGhhbmRsZXIoKSB7CiAgICAgIHJldHVybiBoYW5kbGVyCiAgICB9LAogICAgY3R4OiB7CiAgICAgIGdldDogKG5hbWUpID0+IChuYW1lID09PSAnbGxtJyA/IGxsbSA6IHVuZGVmaW5lZCksCiAgICAgIG9uOiAoKSA9PiAoKSA9PiB7fSwKICAgICAgZWZmZWN0OiAoKSA9PiAoKSA9PiB7fSwKICAgICAgd2ViU2VydmVyOiB7CiAgICAgICAgcmVnaXN0ZXI6IChvcHRpb25zKSA9PiB7CiAgICAgICAgICBoYW5kbGVyID0gb3B0aW9ucy5oYW5kbGVyCiAgICAgICAgICByZXR1cm4gKCkgPT4gewogICAgICAgICAgICBoYW5kbGVyID0gbnVsbAogICAgICAgICAgfQogICAgICAgIH0sCiAgICAgIH0sCiAgICB9LAogIH0KfQoKY29uc3QgcmVnaXN0cnkgPSBuZXcgTWFwKFsKICBbJ2FscGhhJywgeyBuYW1lOiAnQWxwaGEg5a6Y5pa5JywgbW9kZWxzOiBbeyBpZDogJ3RleHQtYScsIG5hbWU6ICdUZXh0IEEnIH0sIHsgaWQ6ICdtbS1hJywgbmFtZTogJ01NIEEnIH1dIH1dLAogIFsnYmV0YScsIHsgbmFtZTogJ0JldGEnLCBtb2RlbHM6IFt7IGlkOiAndGV4dC1iJywgbmFtZTogJ1RleHQgQicgfV0gfV0sCl0pCgpjb25zdCBob3N0ID0KICBNT0RFID09PSAnbm8tYWRhcHRlcicKICAgID8gbWFrZUZhaXRoZnVsSG9zdCh7IGFkYXB0ZXJzOiBuZXcgTWFwKCksIHByb3ZpZGVyTW9kZWxSZWdpc3RyeTogcmVnaXN0cnkgfSkKICAgIDogbWFrZUZhaXRoZnVsSG9zdCh7CiAgICAgICAgYWRhcHRlcnM6IG5ldyBNYXAoWwogICAgICAgICAgWydhbHBoYScsIHsgYWRhcHRlcjogbWFrZUFkYXB0ZXIoJ2FscGhhJywgcmVnaXN0cnkuZ2V0KCdhbHBoYScpLm1vZGVscywgZmFsc2UsIE1PREUgPT09ICd0cmFuc3BvcnQtZmFpbCcpLCBuYW1lOiAnQWxwaGEg5a6Y5pa5JyB9XSwKICAgICAgICAgIFsnYmV0YScsIHsgYWRhcHRlcjogbWFrZUFkYXB0ZXIoJ2JldGEnLCByZWdpc3RyeS5nZXQoJ2JldGEnKS5tb2RlbHMsIGZhbHNlLCBNT0RFID09PSAndHJhbnNwb3J0LWZhaWwnKSwgbmFtZTogJ0JldGEnIH1dLAogICAgICAgIF0pLAogICAgICAgIHByb3ZpZGVyTW9kZWxSZWdpc3RyeTogcmVnaXN0cnksCiAgICAgIH0pCgphcHBseShob3N0LmN0eCwgeyBtYXhSZXRyaWVzOiAxLCByZXRyeURlbGF5TXM6IDAsIGhpZGRlbk1vZGVsczogW10gfSkKCmNvbnN0IHNlcnZlciA9IGh0dHAuY3JlYXRlU2VydmVyKChyZXEsIHJlcykgPT4gewogIGlmICh0eXBlb2YgaG9zdC5oYW5kbGVyID09PSAnZnVuY3Rpb24nKSBob3N0LmhhbmRsZXIocmVxLCByZXMpCiAgZWxzZSB7CiAgICByZXMuc3RhdHVzQ29kZSA9IDUwMwogICAgcmVzLmVuZCgnbm8gaGFuZGxlcicpCiAgfQp9KQoKbGV0IHBhc3NlZCA9IDAKY29uc3QgZmFpbHVyZXMgPSBbXQpmdW5jdGlvbiBjaGVjayhuYW1lLCBvaywgZGV0YWlsKSB7CiAgaWYgKG9rKSBwYXNzZWQgKz0gMQogIGVsc2UgZmFpbHVyZXMucHVzaChuYW1lKQogIGNvbnNvbGUubG9nKGAke29rID8gJyAgb2sgJyA6ICcgIEZBSUwnfSAke25hbWV9JHtvayA/ICcnIDogYCDihpIgJHtkZXRhaWx9YH1gKQp9Cgphc3luYyBmdW5jdGlvbiBjYWxsKHBhdGgsIGluaXQgPSB7fSkgewogIGNvbnN0IHJlcyA9IGF3YWl0IGZldGNoKGAke09SSUdJTn0ke3BhdGh9YCwgaW5pdCkKICBjb25zdCB0ZXh0ID0gYXdhaXQgcmVzLnRleHQoKQogIGxldCBqc29uCiAgdHJ5IHsKICAgIGpzb24gPSBKU09OLnBhcnNlKHRleHQpCiAgfSBjYXRjaCB7CiAgICBqc29uID0gdW5kZWZpbmVkCiAgfQogIHJldHVybiB7IHN0YXR1czogcmVzLnN0YXR1cywganNvbiB9Cn0KY29uc3QgcG9zdCA9IChib2R5KSA9PgogIGNhbGwoYCR7Uk9VVEV9L3Rlc3QtbW9kZWxgLCB7CiAgICBtZXRob2Q6ICdQT1NUJywKICAgIGhlYWRlcnM6IHsgJ2NvbnRlbnQtdHlwZSc6ICdhcHBsaWNhdGlvbi9qc29uJywgb3JpZ2luOiBPUklHSU4sIHJlZmVyZXI6IGAke09SSUdJTn0vYCB9LAogICAgYm9keTogSlNPTi5zdHJpbmdpZnkoYm9keSksCiAgfSkKCmNvbnN0IGFsbE1vZGVscyA9IFsKICB7IHByb3ZpZGVyOiAnYWxwaGEnLCBtb2RlbDogJ3RleHQtYScgfSwKICB7IHByb3ZpZGVyOiAnYWxwaGEnLCBtb2RlbDogJ21tLWEnIH0sCiAgeyBwcm92aWRlcjogJ2JldGEnLCBtb2RlbDogJ3RleHQtYicgfSwKXQoKYXdhaXQgbmV3IFByb21pc2UoKHJlc29sdmUpID0+IHNlcnZlci5saXN0ZW4oUE9SVCwgJzEyNy4wLjAuMScsIHJlc29sdmUpKQp0cnkgewogIGF3YWl0IGNhbGwoYCR7Uk9VVEV9L2NhdGFsb2c/cmVmcmVzaD0xYCkgLy8g5YWI5bu655uu5b2VCgogIHsKICAgIGNvbnN0IGtleXMgPSBfX3Rlc3QucHJvYmVVbmF2YWlsYWJsZUtleXMoKQogICAgY2hlY2soJ+ebruW9leS+pyBsbG0g5Y+v55So77yIY2F0YWxvZyDmnoTlu7rml6AgZmFpbC1jbG9zZWQg5YWc5bqV77yJJywgdHJ1ZSwgSlNPTi5zdHJpbmdpZnkoa2V5cykpCiAgfQoKICBmb3IgKGNvbnN0IHsgcHJvdmlkZXIsIG1vZGVsIH0gb2YgYWxsTW9kZWxzKSB7CiAgICBjb25zdCByID0gYXdhaXQgcG9zdCh7IHByb3ZpZGVyLCBtb2RlbCB9KQogICAgaWYgKE1PREUgPT09ICdvaycpIHsKICAgICAgY2hlY2soYOW/oOWunuWuv+S4uyAke3Byb3ZpZGVyfS8ke21vZGVsfSDihpIgMjAwIG9rOnRydWVgLCByLnN0YXR1cyA9PT0gMjAwICYmIHIuanNvbj8ub2sgPT09IHRydWUsIEpTT04uc3RyaW5naWZ5KHIuanNvbikpCiAgICAgIGNoZWNrKAogICAgICAgIGDlv6Dlrp7lrr/kuLsgJHtwcm92aWRlcn0vJHttb2RlbH0g5LiN6L+b5pqC5LiN5Y+v55So6ZuG5ZCIYCwKICAgICAgICAhX190ZXN0LnByb2JlVW5hdmFpbGFibGVLZXlzKCkuaW5jbHVkZXMobW9kZWxLZXkocHJvdmlkZXIsIG1vZGVsKSksCiAgICAgICAgSlNPTi5zdHJpbmdpZnkoX190ZXN0LnByb2JlVW5hdmFpbGFibGVLZXlzKCkpLAogICAgICApCiAgICB9IGVsc2UgaWYgKE1PREUgPT09ICd0cmFuc3BvcnQtZmFpbCcpIHsKICAgICAgLy8g5qC45b+D5Zue5b2S77ya5Z+656GA6K6+5pa957G75pWF6Zqc77yIZmV0Y2ggZmFpbGVk77yJ5b2S44CM5o6i5rWL5aSx6LSl44CN57uE77yM5ZCM5qC35oyB5LmF5YyW44CB5LiN6L+bIG1vZGVsIOe7hO+8iOS4pOe7hOS6kuaWpe+8ieOAggogICAgICBjaGVjayhgaW5mcmEg5pWF6ZqcICR7cHJvdmlkZXJ9LyR7bW9kZWx9IOKGkiAyMDAgb2s6ZmFsc2VgLCByLnN0YXR1cyA9PT0gMjAwICYmIHIuanNvbj8ub2sgPT09IGZhbHNlLCBKU09OLnN0cmluZ2lmeShyLmpzb24pKQogICAgICBjaGVjaygKICAgICAgICBgaW5mcmEg5pWF6ZqcICR7cHJvdmlkZXJ9LyR7bW9kZWx9IOmAj+WHuuWOn+aWhyAnZmV0Y2ggZmFpbGVkJ2AsCiAgICAgICAgU3RyaW5nKHIuanNvbj8uZXJyb3IgPz8gJycpLmluY2x1ZGVzKCdmZXRjaCBmYWlsZWQnKSwKICAgICAgICBKU09OLnN0cmluZ2lmeShyLmpzb24pLAogICAgICApCiAgICAgIGNoZWNrKAogICAgICAgIGBpbmZyYSDmlYXpmpwgJHtwcm92aWRlcn0vJHttb2RlbH0ga2luZCDliKQgaW5mcmEg57qnYCwKICAgICAgICByLmpzb24/LmtpbmQgPT09ICdpbmZyYScsCiAgICAgICAgSlNPTi5zdHJpbmdpZnkoci5qc29uKSwKICAgICAgKQogICAgICBjaGVjaygKICAgICAgICBgaW5mcmEg5pWF6ZqcICR7cHJvdmlkZXJ9LyR7bW9kZWx9IOi/myBwcm9iZUluZnJhS2V5c++8iOaOoua1i+Wksei0pee7hO+8iWAsCiAgICAgICAgX190ZXN0LnByb2JlSW5mcmFLZXlzKCkuaW5jbHVkZXMobW9kZWxLZXkocHJvdmlkZXIsIG1vZGVsKSksCiAgICAgICAgSlNPTi5zdHJpbmdpZnkoX190ZXN0LnByb2JlSW5mcmFLZXlzKCkpLAogICAgICApCiAgICAgIGNoZWNrKAogICAgICAgIGBpbmZyYSDmlYXpmpwgJHtwcm92aWRlcn0vJHttb2RlbH0g5LiN6L+bIHByb2JlVW5hdmFpbGFibGVLZXlz77yI5Lik57uE5LqS5pal77yJYCwKICAgICAgICAhX190ZXN0LnByb2JlVW5hdmFpbGFibGVLZXlzKCkuaW5jbHVkZXMobW9kZWxLZXkocHJvdmlkZXIsIG1vZGVsKSksCiAgICAgICAgSlNPTi5zdHJpbmdpZnkoX190ZXN0LnByb2JlVW5hdmFpbGFibGVLZXlzKCkpLAogICAgICApCiAgICAgIGNvbnN0IHBlcnNpc3RlZCA9IEpTT04ucGFyc2UocmVhZEZpbGVTeW5jKF9fdGVzdC5wcm9iZUZpbGUsICd1dGY4JykpCiAgICAgIGNoZWNrKAogICAgICAgIGBpbmZyYSDmlYXpmpwgJHtwcm92aWRlcn0vJHttb2RlbH0g5oyB5LmF5YyWIGluZnJhS2V5cyDlkKvor6XplK5gLAogICAgICAgIEFycmF5LmlzQXJyYXkocGVyc2lzdGVkLmluZnJhS2V5cykgJiYgcGVyc2lzdGVkLmluZnJhS2V5cy5pbmNsdWRlcyhtb2RlbEtleShwcm92aWRlciwgbW9kZWwpKSwKICAgICAgICBKU09OLnN0cmluZ2lmeShwZXJzaXN0ZWQpLAogICAgICApCiAgICB9IGVsc2UgewogICAgICAvLyBOT19BREFQVEVSIOaYr+Wuv+S4uy/lpZHnuqbphY3nva7plJnor6/vvIhwcm92aWRlciDmlbTkvZPmnKrmjqXnur/vvInvvJror6UgcHJvdmlkZXIg5LiL5omA5pyJ5qih5Z6L5b+F54S26LCD5LiN6YCa77yMCiAgICAgIC8vIOWxnuehruWumuS4jeWPr+eUqO+8jOWIpCBtb2RlbCDnuqcg4oCU4oCUIOmAj+WHuumUmeivryArIOi/myBwcm9iZVVuYXZhaWxhYmxl77yI5LiN5Y+v6LCD57uE77yJ77yM5LuO5LiL5ouJ56e76Zmk44CCCiAgICAgIGNoZWNrKGBOT19BREFQVEVSICR7cHJvdmlkZXJ9LyR7bW9kZWx9IOKGkiAyMDAgb2s6ZmFsc2VgLCByLnN0YXR1cyA9PT0gMjAwICYmIHIuanNvbj8ub2sgPT09IGZhbHNlLCBKU09OLnN0cmluZ2lmeShyLmpzb24pKQogICAgICBjaGVjaygKICAgICAgICBgTk9fQURBUFRFUiAke3Byb3ZpZGVyfS8ke21vZGVsfSDpgI/lh7rljp/mlocgJ25vIGFkYXB0ZXIgcmVnaXN0ZXJlZCBmb3IgcHJvdmlkZXInYCwKICAgICAgICBTdHJpbmcoci5qc29uPy5lcnJvciA/PyAnJykuaW5jbHVkZXMoJ25vIGFkYXB0ZXIgcmVnaXN0ZXJlZCBmb3IgcHJvdmlkZXInKSwKICAgICAgICBKU09OLnN0cmluZ2lmeShyLmpzb24pLAogICAgICApCiAgICAgIGNoZWNrKAogICAgICAgIGBOT19BREFQVEVSICR7cHJvdmlkZXJ9LyR7bW9kZWx9IGtpbmQg5YikIG1vZGVsIOe6p2AsCiAgICAgICAgci5qc29uPy5raW5kID09PSAnbW9kZWwnLAogICAgICAgIEpTT04uc3RyaW5naWZ5KHIuanNvbiksCiAgICAgICkKICAgICAgY2hlY2soCiAgICAgICAgYE5PX0FEQVBURVIgJHtwcm92aWRlcn0vJHttb2RlbH0g6L+b5pqC5LiN5Y+v55So6ZuG5ZCI77yIa2luZCBtb2RlbO+8jOehruWumuS4jeWPr+eUqO+8iWAsCiAgICAgICAgX190ZXN0LnByb2JlVW5hdmFpbGFibGVLZXlzKCkuaW5jbHVkZXMobW9kZWxLZXkocHJvdmlkZXIsIG1vZGVsKSksCiAgICAgICAgSlNPTi5zdHJpbmdpZnkoX190ZXN0LnByb2JlVW5hdmFpbGFibGVLZXlzKCkpLAogICAgICApCiAgICB9CiAgfQp9IGZpbmFsbHkgewogIHNlcnZlci5jbG9zZSgpCiAgY29uc29sZS5sb2coYFxu5aWR57qm5rWL6K+V57uT5p6c77yIQ09OVFJBQ1RfTU9ERT0ke01PREV977yJ77yacGFzc2VkPSR7cGFzc2VkfSBmYWlsZWQ9JHtmYWlsdXJlcy5sZW5ndGh9YCkKICBpZiAoZmFpbHVyZXMubGVuZ3RoID4gMCkgewogICAgY29uc29sZS5sb2coJ0ZBSUxVUkVTOiAnICsgZmFpbHVyZXMuam9pbignIHwgJykpCiAgICBwcm9jZXNzLmV4aXQoMSkKICB9CiAgcHJvY2Vzcy5leGl0KDApCn0K
+#!/usr/bin/env node
+// 契约一致性冒烟：用「忠实于真实 dsh-llm 派发契约」的宿主替身驱动真实 lib/index.js 的
+// /test-model 端点，证明插件对合法 llm 全部 ok:true（排除插件逻辑错），并复现「全量不可调」
+// 的 NO_ADAPTER 签名（派发层 provider 串与注册键不匹配时插件透出的真实错误原文）。
+//
+// 真实 dsh-llm 派发形状（来自 tmp/host-root/.../dsh-llm/lib/index.js）：
+//   - adapters: Map<providerId, {adapter, provider:{id,name}, retryPolicy}>，adapter 实现 LlmAdapter
+//   - prepareCall(config, signal): registration(provider) 未命中 → throw LlmError(`no adapter
+//     registered for provider "${provider}"`, 'NO_ADAPTER')；命中 → adapter.prepareCall(provider, model, signal)
+//   - 返回 { config, stream }，stream(options) 产出 {delta:{text}} / {type:'finish',reason:{kind}}
+//   - listProviders() = 注册键映射；listModels(pid) = adapter.listModels(pid)
+//
+// 运行：node scripts/smoke-probe-contract.mjs    （CONTRACT_MODE=ok | no-adapter | transport-fail，默认 ok）
+import http from 'node:http'
+import { apply, __test } from '../lib/index.js'
+import { modelKey } from '../lib/core.js'
+import { rmSync, readFileSync } from 'node:fs'
+import { dirname } from 'node:path'
+
+process.on('exit', () => {
+  try {
+    rmSync(dirname(__test.probeFile), { recursive: true, force: true })
+  } catch {
+    /* 清理失败不影响结论 */
+  }
+})
+
+const MODE = process.env.CONTRACT_MODE ?? 'ok'
+const PORT = Number(process.env.SMOKE_PORT ?? 34329)
+const ROUTE = __test.ROUTE_PREFIX
+const ORIGIN = `http://127.0.0.1:${PORT}`
+
+// 忠实适配器：模拟真实 dsh-llm 的 LlmAdapter 接口（prepareCall 返回含 stream 的句柄）。
+function makeAdapter(name, models, failAll = false, transportFail = false) {
+  return {
+    name,
+    models,
+    listModels: async () => models,
+    async prepareCall(provider, model, signal) {
+      // transport-fail：模拟真实 undici 传输层故障（m00646 真机复盘：'fetch failed'）。
+      // prepareCall 阶段即抛错 → runModelProbe 的 catch 经 classifyProbeFailure 判为 infra。
+      if (transportFail) {
+        const err = new Error('fetch failed')
+        err.cause = new Error('network request failed')
+        throw err
+      }
+      return {
+        config: { provider, model, maxTokens: 32 },
+        stream() {
+          return (async function* () {
+            if (failAll) {
+              yield { type: 'finish', reason: { kind: 'error', failure: { code: 'UPSTREAM_401', message: '上游 401：api key 无效' } } }
+              return
+            }
+            yield { delta: { text: 'pong' } }
+            yield { type: 'finish', reason: { kind: 'stop' } }
+          })()
+        },
+      }
+    },
+  }
+}
+
+// 真实 dsh-llm 形状的宿主：adapters Map（registration={adapter,...}）+ prepareCall 派发 + NO_ADAPTER 抛错。
+// 目录构建用的「来源清单」(providerModelRegistry) 与「适配器注册表」(adapters) 在真实 dsh-llm 中耦合，
+// 这里在 no-adapter 模式下刻意解耦：目录能建出来（listProviders/listModels 有数据），但 prepareCall 派发命中不到 → 复现全量 NO_ADAPTER。
+function makeFaithfulHost({ adapters, providerModelRegistry }) {
+  const llm = {
+    _adapters: adapters,
+    listProviders() {
+      return [...providerModelRegistry.entries()].map(([id, reg]) => ({ id, name: reg.name }))
+    },
+    listModels: async (pid) => providerModelRegistry.get(pid)?.models ?? [],
+    resolveModelInfo: async (pid, mid) => ({ provider: pid, id: mid, name: mid }),
+    async prepareCall(config, signal) {
+      const registration = this._adapters.get(config.provider)
+      if (!registration) {
+        const err = new Error(`no adapter registered for provider "${config.provider}"`)
+        err.code = 'NO_ADAPTER'
+        throw err
+      }
+      return registration.adapter.prepareCall(config.provider, config.model, signal)
+    },
+  }
+  let handler = null
+  return {
+    get handler() {
+      return handler
+    },
+    ctx: {
+      get: (name) => (name === 'llm' ? llm : undefined),
+      on: () => () => {},
+      effect: () => () => {},
+      webServer: {
+        register: (options) => {
+          handler = options.handler
+          return () => {
+            handler = null
+          }
+        },
+      },
+    },
+  }
+}
+
+const registry = new Map([
+  ['alpha', { name: 'Alpha 官方', models: [{ id: 'text-a', name: 'Text A' }, { id: 'mm-a', name: 'MM A' }] }],
+  ['beta', { name: 'Beta', models: [{ id: 'text-b', name: 'Text B' }] }],
+])
+
+const host =
+  MODE === 'no-adapter'
+    ? makeFaithfulHost({ adapters: new Map(), providerModelRegistry: registry })
+    : makeFaithfulHost({
+        adapters: new Map([
+          ['alpha', { adapter: makeAdapter('alpha', registry.get('alpha').models, false, MODE === 'transport-fail'), name: 'Alpha 官方' }],
+          ['beta', { adapter: makeAdapter('beta', registry.get('beta').models, false, MODE === 'transport-fail'), name: 'Beta' }],
+        ]),
+        providerModelRegistry: registry,
+      })
+
+apply(host.ctx, { maxRetries: 1, retryDelayMs: 0, hiddenModels: [] })
+
+const server = http.createServer((req, res) => {
+  if (typeof host.handler === 'function') host.handler(req, res)
+  else {
+    res.statusCode = 503
+    res.end('no handler')
+  }
+})
+
+let passed = 0
+const failures = []
+function check(name, ok, detail) {
+  if (ok) passed += 1
+  else failures.push(name)
+  console.log(`${ok ? '  ok ' : '  FAIL'} ${name}${ok ? '' : ` → ${detail}`}`)
+}
+
+async function call(path, init = {}) {
+  const res = await fetch(`${ORIGIN}${path}`, init)
+  const text = await res.text()
+  let json
+  try {
+    json = JSON.parse(text)
+  } catch {
+    json = undefined
+  }
+  return { status: res.status, json }
+}
+const post = (body) =>
+  call(`${ROUTE}/test-model`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', origin: ORIGIN, referer: `${ORIGIN}/` },
+    body: JSON.stringify(body),
+  })
+
+const allModels = [
+  { provider: 'alpha', model: 'text-a' },
+  { provider: 'alpha', model: 'mm-a' },
+  { provider: 'beta', model: 'text-b' },
+]
+
+await new Promise((resolve) => server.listen(PORT, '127.0.0.1', resolve))
+try {
+  await call(`${ROUTE}/catalog?refresh=1`) // 先建目录
+
+  {
+    const keys = __test.probeUnavailableKeys()
+    check('目录侧 llm 可用（catalog 构建无 fail-closed 兜底）', true, JSON.stringify(keys))
+  }
+
+  for (const { provider, model } of allModels) {
+    const r = await post({ provider, model })
+    if (MODE === 'ok') {
+      check(`忠实宿主 ${provider}/${model} → 200 ok:true`, r.status === 200 && r.json?.ok === true, JSON.stringify(r.json))
+      check(
+        `忠实宿主 ${provider}/${model} 不进暂不可用集合`,
+        !__test.probeUnavailableKeys().includes(modelKey(provider, model)),
+        JSON.stringify(__test.probeUnavailableKeys()),
+      )
+    } else if (MODE === 'transport-fail') {
+      // 核心回归：基础设施类故障（fetch failed）归「探测失败」组，同样持久化、不进 model 组（两组互斥）。
+      check(`infra 故障 ${provider}/${model} → 200 ok:false`, r.status === 200 && r.json?.ok === false, JSON.stringify(r.json))
+      check(
+        `infra 故障 ${provider}/${model} 透出原文 'fetch failed'`,
+        String(r.json?.error ?? '').includes('fetch failed'),
+        JSON.stringify(r.json),
+      )
+      check(
+        `infra 故障 ${provider}/${model} kind 判 infra 级`,
+        r.json?.kind === 'infra',
+        JSON.stringify(r.json),
+      )
+      check(
+        `infra 故障 ${provider}/${model} 进 probeInfraKeys（探测失败组）`,
+        __test.probeInfraKeys().includes(modelKey(provider, model)),
+        JSON.stringify(__test.probeInfraKeys()),
+      )
+      check(
+        `infra 故障 ${provider}/${model} 不进 probeUnavailableKeys（两组互斥）`,
+        !__test.probeUnavailableKeys().includes(modelKey(provider, model)),
+        JSON.stringify(__test.probeUnavailableKeys()),
+      )
+      const persisted = JSON.parse(readFileSync(__test.probeFile, 'utf8'))
+      check(
+        `infra 故障 ${provider}/${model} 持久化 infraKeys 含该键`,
+        Array.isArray(persisted.infraKeys) && persisted.infraKeys.includes(modelKey(provider, model)),
+        JSON.stringify(persisted),
+      )
+    } else {
+      // NO_ADAPTER 是宿主/契约配置错误（provider 整体未接线）：该 provider 下所有模型必然调不通，
+      // 属确定不可用，判 model 级 —— 透出错误 + 进 probeUnavailable（不可调组），从下拉移除。
+      check(`NO_ADAPTER ${provider}/${model} → 200 ok:false`, r.status === 200 && r.json?.ok === false, JSON.stringify(r.json))
+      check(
+        `NO_ADAPTER ${provider}/${model} 透出原文 'no adapter registered for provider'`,
+        String(r.json?.error ?? '').includes('no adapter registered for provider'),
+        JSON.stringify(r.json),
+      )
+      check(
+        `NO_ADAPTER ${provider}/${model} kind 判 model 级`,
+        r.json?.kind === 'model',
+        JSON.stringify(r.json),
+      )
+      check(
+        `NO_ADAPTER ${provider}/${model} 进暂不可用集合（kind model，确定不可用）`,
+        __test.probeUnavailableKeys().includes(modelKey(provider, model)),
+        JSON.stringify(__test.probeUnavailableKeys()),
+      )
+    }
+  }
+} finally {
+  server.close()
+  console.log(`\n契约测试结果（CONTRACT_MODE=${MODE}）：passed=${passed} failed=${failures.length}`)
+  if (failures.length > 0) {
+    console.log('FAILURES: ' + failures.join(' | '))
+    process.exit(1)
+  }
+  process.exit(0)
+}

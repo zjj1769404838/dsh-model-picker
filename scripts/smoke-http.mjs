@@ -40,6 +40,9 @@ function makeHost() {
         id: mid,
         name: mid,
         inputModalities: mid === 'text-b' ? ['text'] : undefined,
+        ...(mid === 'text-a'
+          ? { reasoning: { efforts: [{ id: 'low', name: '低' }, { id: 'high', name: '高' }], defaultEffort: 'high' } }
+          : {}),
       }),
     },
     agents: { list: () => liveAgents },
@@ -202,7 +205,33 @@ try {
     check('GET /beacon 回读且白名单外字段被丢弃', list.status === 200 && (list.json?.beacons ?? []).every((b) => b.extra === undefined), JSON.stringify(list.json).slice(0, 300))
   }
 
-  // 7) 未知路由
+  // 7) 推理等级：目录披露 reasoning、/select 透传合法 effort、非法 effort 400
+  {
+    const catalog = await call(`${ROUTE}/catalog?refresh=1`)
+    const textA = (catalog.json?.entries ?? []).find((e) => e.provider === 'alpha' && e.model === 'text-a')
+    check('catalog 暴露 text-a 的 reasoning.efforts（宿主 resolveModelInfo 披露）', Array.isArray(textA?.reasoning?.efforts) && textA.reasoning.efforts.length === 2, JSON.stringify(textA?.reasoning))
+    check('catalog 的 reasoning 带 defaultEffort', textA?.reasoning?.defaultEffort === 'high', JSON.stringify(textA?.reasoning))
+    const noReason = (catalog.json?.entries ?? []).find((e) => e.provider === 'alpha' && e.model === 'mm-a')
+    check('未披露 reasoning 的模型 catalog 里不带该字段（fail-closed）', noReason?.reasoning === undefined, JSON.stringify(noReason?.reasoning))
+    host.selectionCalls.length = 0
+    const okSel = await call(`${ROUTE}/select`, {
+      method: 'POST',
+      headers: { Origin: ORIGIN, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId: 'session-1', provider: 'alpha', model: 'text-a', reasoningEffort: 'high' }),
+    })
+    check('POST /select 带合法 reasoningEffort → 200', okSel.status === 200, `${okSel.status} ${okSel.text.slice(0, 160)}`)
+    check('响应回带 reasoningEffort', okSel.json?.selection?.reasoningEffort === 'high', JSON.stringify(okSel.json?.selection))
+    check('切模型入口收到 reasoningEffort', host.selectionCalls.some((c) => c.reasoningEffort === 'high'), JSON.stringify(host.selectionCalls))
+    const badSel = await call(`${ROUTE}/select`, {
+      method: 'POST',
+      headers: { Origin: ORIGIN, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId: 'session-1', provider: 'alpha', model: 'text-a', reasoningEffort: 'bogus' }),
+    })
+    check('POST /select 带未声明的 reasoningEffort → 400', badSel.status === 400, `${badSel.status} ${badSel.text.slice(0, 160)}`)
+    check('非法 effort 不落地切模型入口', !host.selectionCalls.some((c) => c.reasoningEffort === 'bogus'), JSON.stringify(host.selectionCalls))
+  }
+
+  // 8) 未知路由
   {
     const r = await call(`${ROUTE}/nope`)
     check('未知路由 404', r.status === 404, String(r.status))

@@ -1,1 +1,329 @@
-IyEvdXNyL2Jpbi9lbnYgbm9kZQovLyAvdGVzdC1tb2RlbCDov57pgJrmgKfmtYvor5Xnq6/ngrnlhpLng5/vvJrnnJ/lrp4gaHR0cCDmnI3liqEgKyDnnJ/lrp4gbGliL2luZGV4LmpzIGhhbmRsZXLvvIwKLy8g55So5a6/5Li75pu/6LqrIGxsbS5wcmVwYXJlQ2FsbCDpqbHliqggNSDmnaHot6/lvoTvvIjmiJDlip8v5aSx6LSlL+a1geS4reaWrS80MDQv6Leo5rqQNDAz77yJ77yM5LiN5L6d6LWW5qGM6Z2i56uv6YeN5ZCv44CCCmltcG9ydCBodHRwIGZyb20gJ25vZGU6aHR0cCcKaW1wb3J0IGFzc2VydCBmcm9tICdub2RlOmFzc2VydC9zdHJpY3QnCmltcG9ydCB7IGFwcGx5LCBfX3Rlc3QgfSBmcm9tICcuLi9saWIvaW5kZXguanMnCmltcG9ydCB7IG1vZGVsS2V5IH0gZnJvbSAnLi4vbGliL2NvcmUuanMnCmltcG9ydCB7IHdyaXRlRmlsZVN5bmMsIHJlYWRGaWxlU3luYywgbWtkaXJTeW5jLCBybVN5bmMgfSBmcm9tICdub2RlOmZzJwppbXBvcnQgeyBkaXJuYW1lIH0gZnJvbSAnbm9kZTpwYXRoJwoKLy8g5riF55CG5rWL6K+V5Lqn55Sf55qE5oyB5LmF5YyW5paH5Lu25LiOIGRhdGEg55uu5b2V77yM6YG/5YWN5rGh5p+T5LuT5bqT77yI5LuT5bqT5qC55pegIGdpdGlnbm9yZS9kYXRh77yJ44CCCi8vIOW/hemhu+WcqOS7u+S9lSBwcm9jZXNzLmV4aXQoKSDkuYvliY3ms6jlhozvvJpleGl0IOmSqeWtkOWcqOS7u+S9lemAgOWHuui3r+W+hOmDveaJp+ihjO+8iOWQqyBwcm9jZXNzLmV4aXQg6Lez6L+HIGZpbmFsbHkg55qE5oOF5Ya177yJ44CCCnByb2Nlc3Mub24oJ2V4aXQnLCAoKSA9PiB7CiAgdHJ5IHsKICAgIHJtU3luYyhkaXJuYW1lKF9fdGVzdC5wcm9iZUZpbGUpLCB7IHJlY3Vyc2l2ZTogdHJ1ZSwgZm9yY2U6IHRydWUgfSkKICB9IGNhdGNoIHsKICAgIC8vIOa4heeQhuWksei0peS4jeW9seWTjea1i+ivlee7k+iuugogIH0KfSkKCmNvbnN0IFBPUlQgPSBOdW1iZXIocHJvY2Vzcy5lbnYuU01PS0VfUE9SVCA/PyAzNDMxOSkKY29uc3QgUk9VVEUgPSBfX3Rlc3QuUk9VVEVfUFJFRklYCmNvbnN0IE9SSUdJTiA9IGBodHRwOi8vMTI3LjAuMC4xOiR7UE9SVH1gCgpmdW5jdGlvbiBtYWtlSG9zdCgpIHsKICBjb25zdCBwcm92aWRlcnMgPSBbCiAgICB7IGlkOiAnYWxwaGEnLCBuYW1lOiAnQWxwaGEg5a6Y5pa5JywgZGlzcGxheU5hbWU6ICdBbHBoYScsIHNldHRpbmdzTnM6ICdsbG0tYWxwaGEnIH0sCiAgICB7IGlkOiAnYmV0YScsIG5hbWU6ICdCZXRhJywgc2V0dGluZ3NOczogJ2xsbS1iZXRhJyB9LAogIF0KICBjb25zdCBtb2RlbHMgPSB7CiAgICBhbHBoYTogWwogICAgICB7IGlkOiAndGV4dC1hJywgbmFtZTogJ1RleHQgQScsIGlucHV0TW9kYWxpdGllczogWyd0ZXh0J10gfSwKICAgICAgeyBpZDogJ21tLWEnLCBuYW1lOiAnTU0gQScsIGlucHV0TW9kYWxpdGllczogWyd0ZXh0JywgJ2ltYWdlJ10gfSwKICAgICAgeyBpZDogJ2EtaGlkZS0xJywgbmFtZTogJ0EtSGlkZS0xJywgaW5wdXRNb2RhbGl0aWVzOiBbJ3RleHQnXSB9LAogICAgXSwKICAgIGJldGE6IFt7IGlkOiAndGV4dC1iJywgbmFtZTogJ1RleHQgQicgfV0sCiAgfQogIGNvbnN0IHByb2JlcyA9IFtdCiAgbGV0IGZhaWxNbUEgPSB0cnVlCiAgbGV0IGZhaWxJbmZyYVRleHRBID0gZmFsc2UKICBjb25zdCBzZXJ2aWNlcyA9IHsKICAgIGxsbTogewogICAgICBsaXN0UHJvdmlkZXJzOiAoKSA9PiBwcm92aWRlcnMsCiAgICAgIGxpc3RNb2RlbHM6IGFzeW5jIChwaWQpID0+IG1vZGVsc1twaWRdID8/IFtdLAogICAgICByZXNvbHZlTW9kZWxJbmZvOiBhc3luYyAocGlkLCBtaWQpID0+ICh7IHByb3ZpZGVyOiBwaWQsIGlkOiBtaWQsIG5hbWU6IG1pZCwgaW5wdXRNb2RhbGl0aWVzOiB1bmRlZmluZWQgfSksCiAgICAgIC8vIOS4juWuv+S4uyBkc2gtbGxtOjIyMjUg5ZCM5b2i77ya6L+U5ZueIHtjb25maWcsIHN0cmVhbX3vvJtzdHJlYW0g5Y+q5o6l5Y+X5LiOIGNvbmZpZyDnm7jlrrnnmoQgb3B0aW9ucwogICAgICBhc3luYyBwcmVwYXJlQ2FsbChjb25maWcsIHNpZ25hbCkgewogICAgICAgIHByb2Jlcy5wdXNoKHsgcHJvdmlkZXI6IGNvbmZpZy5wcm92aWRlciwgbW9kZWw6IGNvbmZpZy5tb2RlbCwgbWF4VG9rZW5zOiBjb25maWcubWF4VG9rZW5zIH0pCiAgICAgICAgaWYgKGNvbmZpZy5tb2RlbCA9PT0gJ3RleHQtYScgJiYgZmFpbEluZnJhVGV4dEEpIHRocm93IG5ldyBFcnJvcignZmV0Y2ggZmFpbGVkJykKICAgICAgICByZXR1cm4gewogICAgICAgICAgY29uZmlnOiB7IC4uLmNvbmZpZywgdGVtcGVyYXR1cmU6IDAuNyB9LAogICAgICAgICAgYXN5bmMgKnN0cmVhbShvcHRpb25zKSB7CiAgICAgICAgICAgIGFzc2VydC5lcXVhbChvcHRpb25zLnByb3ZpZGVyLCBjb25maWcucHJvdmlkZXIpCiAgICAgICAgICAgIGFzc2VydC5lcXVhbChvcHRpb25zLm1vZGVsLCBjb25maWcubW9kZWwpCiAgICAgICAgICAgIGFzc2VydC5lcXVhbChvcHRpb25zLm1heFRva2VucywgY29uZmlnLm1heFRva2VucywgJ3N0cmVhbSBvcHRpb25zIOW/hemhu+aQuuW4puS4jiBjb25maWcg55u45ZCM55qEIG1heFRva2Vuc++8iGNhbGxDb25maWdFcXVhbHMg5qCh6aqM6Z2i77yJJykKICAgICAgICAgICAgYXNzZXJ0Lm9rKEFycmF5LmlzQXJyYXkob3B0aW9ucy5tZXNzYWdlcykgJiYgb3B0aW9ucy5tZXNzYWdlcy5sZW5ndGggPT09IDIsICflv4XpobvluKYgbWVzc2FnZXPvvIhzeXN0ZW0gKyB1c2VyIOS4pOadoe+8jOecn+acuiBtMDE0MzbvvJp3b3JrYnVkZHkg572R5YWz6KaB5rGC6aaW5p2h5Li6IHN5c3Rlbe+8iScpCiAgICAgICAgICAgIGFzc2VydC5lcXVhbChvcHRpb25zLm1lc3NhZ2VzWzBdPy5yb2xlLCAnc3lzdGVtJywgJ+mmluadoea2iOaBr+W/hemhu+aYryBzeXN0ZW3vvIjnvZHlhbPmoLzlvI/opoHmsYLvvIzlr7npvZDlrr/kuLvnnJ/lrp7osIPnlKjvvIknKQogICAgICAgICAgICAvLyDnnJ/mnLogbTAyNzE1IOWbnuW9ku+8muWuv+S4uyBjb250ZW50SGFzRmlsZS9JbWFnZSDkvJrlr7kgY29udGVudCDosIMgLnNvbWUoKS/pgY3ljobvvIwKICAgICAgICAgICAgLy8gY29udGVudCDlv4XpobvmmK/nu5PmnoTljJblnZfmlbDnu4TogIzpnZ7oo7jlrZfnrKbkuLLvvIzlkKbliJnmipsgImNvbnRlbnQuc29tZSBpcyBub3QgYSBmdW5jdGlvbiLjgIIKICAgICAgICAgICAgY29uc3QgY29udGVudCA9IG9wdGlvbnMubWVzc2FnZXNbMV0/LmNvbnRlbnQKICAgICAgICAgICAgYXNzZXJ0Lm9rKEFycmF5LmlzQXJyYXkoY29udGVudCkgJiYgY29udGVudFswXT8udHlwZSA9PT0gJ3RleHQnICYmIHR5cGVvZiBjb250ZW50WzBdPy50ZXh0ID09PSAnc3RyaW5nJywgJ21lc3NhZ2UuY29udGVudCDlv4XpobvmmK8gW3t0eXBlOiJ0ZXh0Iix0ZXh0fV0g57uT5p6E5YyW5Z2X5pWw57uE77yI5a6/5Li75aWR57qm77yJJykKICAgICAgICAgICAgaWYgKGNvbmZpZy5tb2RlbCA9PT0gJ21tLWEnICYmIGZhaWxNbUEpIHsKICAgICAgICAgICAgICB5aWVsZCB7IHR5cGU6ICdmaW5pc2gnLCByZWFzb246IHsga2luZDogJ2Vycm9yJywgZmFpbHVyZTogeyBjb2RlOiAnVVBTVFJFQU1fNDAxJywgbWVzc2FnZTogJ+S4iua4uCA0MDHvvJphcGkga2V5IOaXoOaViCcgfSB9IH0KICAgICAgICAgICAgICByZXR1cm4KICAgICAgICAgICAgfQogICAgICAgICAgICBpZiAoY29uZmlnLm1vZGVsID09PSAndGV4dC1iJykgewogICAgICAgICAgICAgIHlpZWxkIHsgZGVsdGE6IHsgdGV4dDogJ3BhcnRpYWwnIH0gfQogICAgICAgICAgICAgIHJldHVybiAvLyDmtYHkuK3mlq3vvIzmsqHmnIkgZmluaXNoIGNodW5rCiAgICAgICAgICAgIH0KICAgICAgICAgICAgeWllbGQgeyBkZWx0YTogeyB0ZXh0OiAncG9uZycgfSB9CiAgICAgICAgICAgIHlpZWxkIHsgdHlwZTogJ2ZpbmlzaCcsIHJlYXNvbjogeyBraW5kOiAnc3RvcCcgfSB9CiAgICAgICAgICB9LAogICAgICAgIH0KICAgICAgfSwKICAgIH0sCiAgICBhZ2VudHM6IHsgbGlzdDogKCkgPT4gW10gfSwKICAgIHNlc3Npb25Db250cm9sbGVyOiB7IGFnZW50czoge30gfSwKICAgIHNlc3Npb25Qcm9qZWN0aW9uczogeyBzdGF0ZU9mOiAoKSA9PiB1bmRlZmluZWQgfSwKICAgIGFnZW50RGVmYXVsdE1vZGVsOiB7IGN1cnJlbnRTZWxlY3Rpb246ICgpID0+ICh7IHByb3ZpZGVyOiAnYWxwaGEnLCBtb2RlbDogJ3RleHQtYScgfSkgfSwKICB9CiAgbGV0IGhhbmRsZXIgPSBudWxsCiAgcmV0dXJuIHsKICAgIHByb2JlcywKICAgIHNldEZhaWxNbUE6ICh2KSA9PiB7IGZhaWxNbUEgPSB2IH0sCiAgICBzZXRGYWlsSW5mcmFUZXh0QTogKHYpID0+IHsgZmFpbEluZnJhVGV4dEEgPSB2IH0sCiAgICBnZXQgaGFuZGxlcigpIHsKICAgICAgcmV0dXJuIGhhbmRsZXIKICAgIH0sCiAgICBjdHg6IHsKICAgICAgZ2V0OiAobmFtZSkgPT4gc2VydmljZXNbbmFtZV0sCiAgICAgIG9uOiAoKSA9PiAoKSA9PiB7fSwKICAgICAgZWZmZWN0OiAoKSA9PiAoKSA9PiB7fSwKICAgICAgd2ViU2VydmVyOiB7CiAgICAgICAgcmVnaXN0ZXI6IChvcHRpb25zKSA9PiB7CiAgICAgICAgICBoYW5kbGVyID0gb3B0aW9ucy5oYW5kbGVyCiAgICAgICAgICByZXR1cm4gKCkgPT4gewogICAgICAgICAgICBoYW5kbGVyID0gbnVsbAogICAgICAgICAgfQogICAgICAgIH0sCiAgICAgIH0sCiAgICB9LAogIH0KfQoKY29uc3QgaG9zdCA9IG1ha2VIb3N0KCkKCi8vIOKRoyBmYWlsLWNsb3NlZCDmjIHkuYXljJbmtYvor5XvvJphcHBseSDliY3pooTnva7kuIDku73kuIrmrKHnmoTmmoLkuI3lj6/nlKjorrDlvZXvvIwKLy8g55So5Lul6aqM6K+B44CM6YeN5ZCv5ZCO5rK/55So5LiK5qyh57uT5p6c44CN55qE5Zue5aGr6Lev5b6E77yM5Lul5Y+K5o6i5rWL5ZCO5YaZ5Zue5Yi35paw44CCCmNvbnN0IHByZXNldEtleSA9ICdwcmVzZXQvcHJlc2V0LTEnCmNvbnN0IHByZXNldEluZnJhS2V5ID0gJ3ByZXNldC9wcmVzZXQtaW5mcmEtMScKbWtkaXJTeW5jKGRpcm5hbWUoX190ZXN0LnByb2JlRmlsZSksIHsgcmVjdXJzaXZlOiB0cnVlIH0pCndyaXRlRmlsZVN5bmMoX190ZXN0LnByb2JlRmlsZSwgSlNPTi5zdHJpbmdpZnkoeyBzYXZlZEF0OiAxLCBrZXlzOiBbcHJlc2V0S2V5XSwgaW5mcmFLZXlzOiBbcHJlc2V0SW5mcmFLZXldIH0pLCAndXRmOCcpCgphcHBseShob3N0LmN0eCwgeyBtYXhSZXRyaWVzOiAxLCByZXRyeURlbGF5TXM6IDAsIGhpZGRlbk1vZGVsczogWydhbHBoYS9hLWhpZGUtMSddIH0pCgpjb25zdCBzZXJ2ZXIgPSBodHRwLmNyZWF0ZVNlcnZlcigocmVxLCByZXMpID0+IHsKICBpZiAodHlwZW9mIGhvc3QuaGFuZGxlciA9PT0gJ2Z1bmN0aW9uJykgaG9zdC5oYW5kbGVyKHJlcSwgcmVzKQogIGVsc2UgewogICAgcmVzLnN0YXR1c0NvZGUgPSA1MDMKICAgIHJlcy5lbmQoJ25vIGhhbmRsZXInKQogIH0KfSkKCmxldCBwYXNzZWQgPSAwCmNvbnN0IGZhaWx1cmVzID0gW10KZnVuY3Rpb24gY2hlY2sobmFtZSwgb2ssIGRldGFpbCkgewogIGlmIChvaykgcGFzc2VkICs9IDEKICBlbHNlIGZhaWx1cmVzLnB1c2gobmFtZSkKICBjb25zb2xlLmxvZyhgJHtvayA/ICcgIG9rICcgOiAnICBGQUlMJ30gJHtuYW1lfSR7b2sgPyAnJyA6IGAg4oaSICR7ZGV0YWlsfWB9YCkKfQoKYXN5bmMgZnVuY3Rpb24gY2FsbChwYXRoLCBpbml0ID0ge30pIHsKICBjb25zdCByZXMgPSBhd2FpdCBmZXRjaChgJHtPUklHSU59JHtwYXRofWAsIGluaXQpCiAgY29uc3QgdGV4dCA9IGF3YWl0IHJlcy50ZXh0KCkKICBsZXQganNvbgogIHRyeSB7CiAgICBqc29uID0gSlNPTi5wYXJzZSh0ZXh0KQogIH0gY2F0Y2ggewogICAganNvbiA9IHVuZGVmaW5lZAogIH0KICByZXR1cm4geyBzdGF0dXM6IHJlcy5zdGF0dXMsIHRleHQsIGpzb24gfQp9Cgpjb25zdCBwb3N0ID0gKGJvZHksIGV4dHJhID0ge30pID0+IGNhbGwoYCR7Uk9VVEV9L3Rlc3QtbW9kZWxgLCB7CiAgbWV0aG9kOiAnUE9TVCcsCiAgaGVhZGVyczogeyAnY29udGVudC10eXBlJzogJ2FwcGxpY2F0aW9uL2pzb24nLCBvcmlnaW46IE9SSUdJTiwgcmVmZXJlcjogYCR7T1JJR0lOfS9gLCAuLi4oZXh0cmEuaGVhZGVycyA/PyB7fSkgfSwKICBib2R5OiBKU09OLnN0cmluZ2lmeShib2R5KSwKfSkKCmF3YWl0IG5ldyBQcm9taXNlKChyZXNvbHZlKSA9PiBzZXJ2ZXIubGlzdGVuKFBPUlQsICcxMjcuMC4wLjEnLCByZXNvbHZlKSkKdHJ5IHsKICBhd2FpdCBjYWxsKGAke1JPVVRFfS9jYXRhbG9nP3JlZnJlc2g9MWApIC8vIOWFiOaKiuebruW9leW7uui1t+adpQoKICAvLyDikaMgZmFpbC1jbG9zZWQg5oyB5LmF5YyW77yaYXBwbHkg5YmN55qE6aKE572u6K6w5b2V5bqU6KKr5Zue5aGr6L+b5pqC5LiN5Y+v55So6ZuG5ZCICiAgewogICAgY29uc3Qga2V5cyA9IF9fdGVzdC5wcm9iZVVuYXZhaWxhYmxlS2V5cygpCiAgICBjaGVjaygn4pGjIOmihOe9ruaMgeS5heWMluiusOW9leiiq+WbnuWhq+i/m+aaguS4jeWPr+eUqOmbhuWQiCcsIGtleXMuaW5jbHVkZXMocHJlc2V0S2V5KSwgSlNPTi5zdHJpbmdpZnkoa2V5cykpCiAgICBjb25zdCBpbmZyYUtleXMgPSBfX3Rlc3QucHJvYmVJbmZyYUtleXMoKQogICAgY2hlY2soJ+KRoyDpooTnva4gaW5mcmFLZXlzIOiiq+WbnuWhq+i/m+aOoua1i+Wksei0pembhuWQiCcsIGluZnJhS2V5cy5pbmNsdWRlcyhwcmVzZXRJbmZyYUtleSksIEpTT04uc3RyaW5naWZ5KGluZnJhS2V5cykpCiAgfQoKICAvLyDikaMgZmFpbC1jbG9zZWQg5oyB5LmF5YyW77yacnVuU2NoZWR1bGVkUHJvYmUg5LmL5ZCO5bqU5oqK5b2T5YmN6ZuG5ZCI5YaZ5Zue56OB55uY5bm25Yi35paw5pe26Ze05oizCiAgewogICAgY29uc3QgYmVmb3JlID0gSlNPTi5wYXJzZShyZWFkRmlsZVN5bmMoX190ZXN0LnByb2JlRmlsZSwgJ3V0ZjgnKSkKICAgIGF3YWl0IF9fdGVzdC5ydW5TY2hlZHVsZWRQcm9iZSgpCiAgICBjb25zdCBhZnRlciA9IEpTT04ucGFyc2UocmVhZEZpbGVTeW5jKF9fdGVzdC5wcm9iZUZpbGUsICd1dGY4JykpCiAgICBjaGVjaygn4pGjIOaOoua1i+WQjuaMgeS5heWMluaWh+S7tuW3suWIt+aWsO+8iHNhdmVkQXQg6KKr5pu05paw77yJJywgdHlwZW9mIGFmdGVyLnNhdmVkQXQgPT09ICdudW1iZXInICYmIGFmdGVyLnNhdmVkQXQgIT09IGJlZm9yZS5zYXZlZEF0LCBKU09OLnN0cmluZ2lmeShhZnRlcikpCiAgICBjaGVjaygn4pGjIOaOoua1i+WQjuaMgeS5heWMluaWh+S7tuWQq+W9k+WJjeaaguS4jeWPr+eUqOmUricsIEFycmF5LmlzQXJyYXkoYWZ0ZXIua2V5cykgJiYgYWZ0ZXIua2V5cy5pbmNsdWRlcyhwcmVzZXRLZXkpLCBKU09OLnN0cmluZ2lmeShhZnRlcikpCiAgICBjaGVjaygn4pGjIOaOoua1i+WQjuaMgeS5heWMluaWh+S7tuWQq+W9k+WJjeaOoua1i+Wksei0pemUricsIEFycmF5LmlzQXJyYXkoYWZ0ZXIuaW5mcmFLZXlzKSAmJiBhZnRlci5pbmZyYUtleXMuaW5jbHVkZXMocHJlc2V0SW5mcmFLZXkpLCBKU09OLnN0cmluZ2lmeShhZnRlcikpCiAgfQoKICAvLyAwKSDpmpDol4/mqKHlnovvvIhoaWRkZW7vvInkuI3lupTov5vlrprml7bmjqLmtYvpmJ/liJfvvIzkuZ/kuI3lupTov5vmmoLkuI3lj6/nlKjpm4blkIgKICB7CiAgICBhd2FpdCBfX3Rlc3QucnVuU2NoZWR1bGVkUHJvYmUoKQogICAgY2hlY2soJ+makOiXj+aooeWei+S4jeW6lOi/m+aOoua1i+mYn+WIlycsICFob3N0LnByb2Jlcy5zb21lKChwKSA9PiBwLm1vZGVsID09PSAnYS1oaWRlLTEnKSwgSlNPTi5zdHJpbmdpZnkoaG9zdC5wcm9iZXMpKQogICAgY2hlY2soJ+makOiXj+aooeWei+S4jeW6lOi/m+aaguS4jeWPr+eUqOmbhuWQiCcsICFfX3Rlc3QucHJvYmVVbmF2YWlsYWJsZUtleXMoKS5pbmNsdWRlcyhtb2RlbEtleSgnYWxwaGEnLCAnYS1oaWRlLTEnKSksIEpTT04uc3RyaW5naWZ5KF9fdGVzdC5wcm9iZVVuYXZhaWxhYmxlS2V5cygpKSkKICB9CgogIC8vIDEpIOaIkOWKn+i3r+W+hO+8mnRleHQtYSDov5Tlm54gb2s6dHJ1ZSArIG1zICsgc2FtcGxlCiAgewogICAgY29uc3QgciA9IGF3YWl0IHBvc3QoeyBwcm92aWRlcjogJ2FscGhhJywgbW9kZWw6ICd0ZXh0LWEnIH0pCiAgICBjaGVjaygn5oiQ5Yqf6Lev5b6EIDIwMCBvazp0cnVlIOS4lCBtcz4wJywgci5zdGF0dXMgPT09IDIwMCAmJiByLmpzb24/Lm9rID09PSB0cnVlICYmIHR5cGVvZiByLmpzb24/Lm1zID09PSAnbnVtYmVyJyAmJiByLmpzb24ubXMgPj0gMCwgSlNPTi5zdHJpbmdpZnkoci5qc29uKSkKICAgIGNoZWNrKCfmiJDlip/ot6/lvoTluKYgc2FtcGxlIOeJh+autScsIHIuanNvbj8uc2FtcGxlID09PSAncG9uZycsIEpTT04uc3RyaW5naWZ5KHIuanNvbikpCiAgICBjaGVjaygn5oiQ5Yqf6Lev5b6E5bey55yf5a6e6LCD55SoIHByZXBhcmVDYWxs77yIbWF4VG9rZW5zPTMy77yJJywgaG9zdC5wcm9iZXMuYXQoLTEpPy5tYXhUb2tlbnMgPT09IDMyICYmIGhvc3QucHJvYmVzLmF0KC0xKT8ubW9kZWwgPT09ICd0ZXh0LWEnLCBKU09OLnN0cmluZ2lmeShob3N0LnByb2Jlcy5hdCgtMSkpKQogICAgY2hlY2soJ+aIkOWKn+aOoua1i+S4jeWKoOWFpeaaguS4jeWPr+eUqOmbhuWQiCcsICFfX3Rlc3QucHJvYmVVbmF2YWlsYWJsZUtleXMoKS5pbmNsdWRlcyhtb2RlbEtleSgnYWxwaGEnLCAndGV4dC1hJykpLCBKU09OLnN0cmluZ2lmeShfX3Rlc3QucHJvYmVVbmF2YWlsYWJsZUtleXMoKSkpCiAgfQoKICAvLyAyKSDlpLHotKXot6/lvoTvvJptbS1hIOS4iua4uCA0MDEg4oaSIG9rOmZhbHNlICsgZXJyb3Ig5Y6f5paHCiAgewogICAgY29uc3QgciA9IGF3YWl0IHBvc3QoeyBwcm92aWRlcjogJ2FscGhhJywgbW9kZWw6ICdtbS1hJyB9KQogICAgY2hlY2soJ+Wksei0pei3r+W+hCAyMDAgb2s6ZmFsc2Ug5LiU5bim5LiK5ri46ZSZ6K+v5Y6f5paHJywgci5zdGF0dXMgPT09IDIwMCAmJiByLmpzb24/Lm9rID09PSBmYWxzZSAmJiBTdHJpbmcoci5qc29uPy5lcnJvciA/PyAnJykuaW5jbHVkZXMoJzQwMScpLCBKU09OLnN0cmluZ2lmeShyLmpzb24pKQogICAgY2hlY2soJ+Wksei0peaOoua1i+WKoOWFpeaaguS4jeWPr+eUqOmbhuWQiCcsIF9fdGVzdC5wcm9iZVVuYXZhaWxhYmxlS2V5cygpLmluY2x1ZGVzKG1vZGVsS2V5KCdhbHBoYScsICdtbS1hJykpLCBKU09OLnN0cmluZ2lmeShfX3Rlc3QucHJvYmVVbmF2YWlsYWJsZUtleXMoKSkpCiAgICBob3N0LnNldEZhaWxNbUEoZmFsc2UpCiAgICB7CiAgICAgIGNvbnN0IHIyID0gYXdhaXQgcG9zdCh7IHByb3ZpZGVyOiAnYWxwaGEnLCBtb2RlbDogJ21tLWEnIH0pCiAgICAgIGNoZWNrKCfph43mtYvpgJrov4foh6rliqjnp7vlh7rmmoLkuI3lj6/nlKjpm4blkIgnLCByMi5zdGF0dXMgPT09IDIwMCAmJiByMi5qc29uPy5vayA9PT0gdHJ1ZSAmJiAhX190ZXN0LnByb2JlVW5hdmFpbGFibGVLZXlzKCkuaW5jbHVkZXMobW9kZWxLZXkoJ2FscGhhJywgJ21tLWEnKSksIEpTT04uc3RyaW5naWZ5KHIyLmpzb24pKQogICAgfQogIH0KCiAgLy8gMykg5rWB5Lit5pat77yadGV4dC1iIOWPquacieWGheWuueeJh+ayoeaciSBmaW5pc2gg4oaSIOWIpOWumuWPr+eUqO+8iOaooeWei+ehruWunuWTjeW6lOS6hu+8iQogIC8vIDJiKSDmjqLmtYvlkI7nm67lvZXlv6vnhafnq4vljbPlj43mmKDkuI3lj6/osIPvvJovdGVzdC1tb2RlbCDlhpkgcHJvYmVVbmF2YWlsYWJsZSDlkI7lv4XpobvlpLHmlYggY2F0YWxvZyDnvJPlrZjvvIwKICAvLyAgICAg5ZCm5YiZIC9jYXRhbG9n77yI5LiN5bimIHJlZnJlc2jvvInku43ov5Tlm57mjqLmtYvliY3nmoTml6flv6vnhafvvIzkuIvmi4nkvJrnlZnkuIvliJrooqvmoIfjgIzkuI3lj6/osIPjgI3nmoTmqKHlnovjgIIKICB7CiAgICBob3N0LnNldEZhaWxNbUEodHJ1ZSkKICAgIGNvbnN0IGJlZm9yZSA9IGF3YWl0IGNhbGwoYCR7Uk9VVEV9L2NhdGFsb2dgKQogICAgY29uc3QgYmVmb3JlSGFzID0gQXJyYXkuaXNBcnJheShiZWZvcmUuanNvbj8udW5hdmFpbGFibGVNb2RlbHMpICYmIGJlZm9yZS5qc29uLnVuYXZhaWxhYmxlTW9kZWxzLmluY2x1ZGVzKG1vZGVsS2V5KCdhbHBoYScsICdtbS1hJykpCiAgICBjaGVjaygn5o6i5rWL5YmN77ya55uu5b2V5b+r54Wn5LiN5ZCr6K+l5qih5Z6L77yI5Z+657q/77yJJywgYmVmb3JlLnN0YXR1cyA9PT0gMjAwICYmICFiZWZvcmVIYXMsIGAke2JlZm9yZS5zdGF0dXN9ICR7SlNPTi5zdHJpbmdpZnkoYmVmb3JlLmpzb24/LnVuYXZhaWxhYmxlTW9kZWxzID8/IG51bGwpfWApCiAgICBhd2FpdCBwb3N0KHsgcHJvdmlkZXI6ICdhbHBoYScsIG1vZGVsOiAnbW0tYScgfSkKICAgIGNvbnN0IGFmdGVyID0gYXdhaXQgY2FsbChgJHtST1VURX0vY2F0YWxvZ2ApCiAgICBjb25zdCBhZnRlckhhcyA9IEFycmF5LmlzQXJyYXkoYWZ0ZXIuanNvbj8udW5hdmFpbGFibGVNb2RlbHMpICYmIGFmdGVyLmpzb24udW5hdmFpbGFibGVNb2RlbHMuaW5jbHVkZXMobW9kZWxLZXkoJ2FscGhhJywgJ21tLWEnKSkKICAgIGNoZWNrKCfmjqLmtYvlkI7vvJrnm67lvZXlv6vnhafnq4vljbPlkKvkuI3lj6/osIPmqKHlnovvvIjnvJPlrZjlt7LlpLHmlYjvvIzkuI3nrYkgVFRM77yJJywgYWZ0ZXIuc3RhdHVzID09PSAyMDAgJiYgYWZ0ZXJIYXMsIGAke2FmdGVyLnN0YXR1c30gJHtKU09OLnN0cmluZ2lmeShhZnRlci5qc29uPy51bmF2YWlsYWJsZU1vZGVscyA/PyBudWxsKX1gKQogICAgaG9zdC5zZXRGYWlsTW1BKGZhbHNlKQogICAgYXdhaXQgcG9zdCh7IHByb3ZpZGVyOiAnYWxwaGEnLCBtb2RlbDogJ21tLWEnIH0pCiAgICBjb25zdCBjbGVhcmVkID0gYXdhaXQgY2FsbChgJHtST1VURX0vY2F0YWxvZ2ApCiAgICBjb25zdCBjbGVhcmVkSGFzID0gQXJyYXkuaXNBcnJheShjbGVhcmVkLmpzb24/LnVuYXZhaWxhYmxlTW9kZWxzKSAmJiBjbGVhcmVkLmpzb24udW5hdmFpbGFibGVNb2RlbHMuaW5jbHVkZXMobW9kZWxLZXkoJ2FscGhhJywgJ21tLWEnKSkKICAgIGNoZWNrKCfph43mtYvpgJrov4flkI7vvJrnm67lvZXlv6vnhafnq4vljbPnp7vlh7rkuI3lj6/osIPvvIjnvJPlrZjlkIzmoLfljbPml7blpLHmlYjvvIknLCBjbGVhcmVkLnN0YXR1cyA9PT0gMjAwICYmICFjbGVhcmVkSGFzLCBgJHtjbGVhcmVkLnN0YXR1c30gJHtKU09OLnN0cmluZ2lmeShjbGVhcmVkLmpzb24/LnVuYXZhaWxhYmxlTW9kZWxzID8/IG51bGwpfWApCiAgfQoKICAvLyAyYykgL3Byb2JlL3Jlc3RvcmXvvJrkurrlt6XmiormqKHlnovku47mmoLkuI3lj6/nlKjnu4Tnp7vlh7rvvIzlv4Xpobvnq4vljbPlj43mmKDliLDnm67lvZXlv6vnhafvvIjnrYnku7fljbPml7blpLHmlYjvvInvvIwKICAvLyAgICAg5ZCm5YiZ44CM56e75Ye65LiN5Y+v55So44CN5oyJ6ZKu54K55LqG5L2G5LiL5ouJ6YeM5qih5Z6L5LuN5LiN6KeB77yM55So5oi35Lya5Lul5Li65rKh55Sf5pWI44CCCiAgewogICAgaG9zdC5zZXRGYWlsTW1BKHRydWUpCiAgICBhd2FpdCBwb3N0KHsgcHJvdmlkZXI6ICdhbHBoYScsIG1vZGVsOiAnbW0tYScgfSkKICAgIGNvbnN0IGFmdGVyRmFpbCA9IGF3YWl0IGNhbGwoYCR7Uk9VVEV9L2NhdGFsb2dgKQogICAgY29uc3QgYWZ0ZXJGYWlsSGFzID0gQXJyYXkuaXNBcnJheShhZnRlckZhaWwuanNvbj8udW5hdmFpbGFibGVNb2RlbHMpICYmIGFmdGVyRmFpbC5qc29uPy51bmF2YWlsYWJsZU1vZGVscy5pbmNsdWRlcyhtb2RlbEtleSgnYWxwaGEnLCAnbW0tYScpKQogICAgY2hlY2soJ3Jlc3RvcmUg5YmN572u77ya5o6i5rWL5aSx6LSl5ZCO5qih5Z6L6L+b5YWl5LiN5Y+v55So57uE77yI5Z+657q/77yJJywgYWZ0ZXJGYWlsLnN0YXR1cyA9PT0gMjAwICYmIGFmdGVyRmFpbEhhcywgYCR7YWZ0ZXJGYWlsLnN0YXR1c30gJHtKU09OLnN0cmluZ2lmeShhZnRlckZhaWwuanNvbj8udW5hdmFpbGFibGVNb2RlbHMgPz8gbnVsbCl9YCkKICAgIGNvbnN0IHJlc3RvcmUgPSBhd2FpdCBjYWxsKGAke1JPVVRFfS9wcm9iZS9yZXN0b3JlYCwgewogICAgICBtZXRob2Q6ICdQT1NUJywKICAgICAgaGVhZGVyczogeyAnY29udGVudC10eXBlJzogJ2FwcGxpY2F0aW9uL2pzb24nLCBvcmlnaW46IE9SSUdJTiwgcmVmZXJlcjogYCR7T1JJR0lOfS9gIH0sCiAgICAgIGJvZHk6IEpTT04uc3RyaW5naWZ5KHsgcHJvdmlkZXI6ICdhbHBoYScsIG1vZGVsOiAnbW0tYScgfSksCiAgICB9KQogICAgY2hlY2soJy9wcm9iZS9yZXN0b3Jl77ya56e75Ye66L+U5ZueIDIwMCBvazp0cnVlIHJlbW92ZWQ6dHJ1ZScsIHJlc3RvcmUuc3RhdHVzID09PSAyMDAgJiYgcmVzdG9yZS5qc29uPy5vayA9PT0gdHJ1ZSAmJiByZXN0b3JlLmpzb24/LnJlbW92ZWQgPT09IHRydWUsIGAke3Jlc3RvcmUuc3RhdHVzfSAke0pTT04uc3RyaW5naWZ5KHJlc3RvcmUuanNvbil9YCkKICAgIGNoZWNrKCcvcHJvYmUvcmVzdG9yZe+8mumbhuWQiOS4reW3suenu+WHuuivpeaooeWeiycsICFfX3Rlc3QucHJvYmVVbmF2YWlsYWJsZUtleXMoKS5pbmNsdWRlcyhtb2RlbEtleSgnYWxwaGEnLCAnbW0tYScpKSwgSlNPTi5zdHJpbmdpZnkoX190ZXN0LnByb2JlVW5hdmFpbGFibGVLZXlzKCkpKQogICAgY29uc3QgcmVzdG9yZWQgPSBhd2FpdCBjYWxsKGAke1JPVVRFfS9jYXRhbG9nYCkKICAgIGNvbnN0IHJlc3RvcmVkSGFzID0gQXJyYXkuaXNBcnJheShyZXN0b3JlZC5qc29uPy51bmF2YWlsYWJsZU1vZGVscykgJiYgcmVzdG9yZWQuanNvbj8udW5hdmFpbGFibGVNb2RlbHMuaW5jbHVkZXMobW9kZWxLZXkoJ2FscGhhJywgJ21tLWEnKSkKICAgIGNoZWNrKCcvcHJvYmUvcmVzdG9yZe+8muebruW9leW/q+eFp+eri+WNs+enu+WHuuivpeaooeWei++8iOe8k+WtmOW3suWkseaViO+8jOS4jeetiSBUVEzvvIknLCByZXN0b3JlZC5zdGF0dXMgPT09IDIwMCAmJiAhcmVzdG9yZWRIYXMsIGAke3Jlc3RvcmVkLnN0YXR1c30gJHtKU09OLnN0cmluZ2lmeShyZXN0b3JlZC5qc29uPy51bmF2YWlsYWJsZU1vZGVscyA/PyBudWxsKX1gKQogICAgY29uc3QgcmVzdG9yZUFnYWluID0gYXdhaXQgY2FsbChgJHtST1VURX0vcHJvYmUvcmVzdG9yZWAsIHsKICAgICAgbWV0aG9kOiAnUE9TVCcsCiAgICAgIGhlYWRlcnM6IHsgJ2NvbnRlbnQtdHlwZSc6ICdhcHBsaWNhdGlvbi9qc29uJywgb3JpZ2luOiBPUklHSU4sIHJlZmVyZXI6IGAke09SSUdJTn0vYCB9LAogICAgICBib2R5OiBKU09OLnN0cmluZ2lmeSh7IHByb3ZpZGVyOiAnYWxwaGEnLCBtb2RlbDogJ21tLWEnIH0pLAogICAgfSkKICAgIGNoZWNrKCcvcHJvYmUvcmVzdG9yZe+8mumHjeWkjeenu+WHuuW5guetie+8iDIwMCByZW1vdmVkOmZhbHNl77yJJywgcmVzdG9yZUFnYWluLnN0YXR1cyA9PT0gMjAwICYmIHJlc3RvcmVBZ2Fpbi5qc29uPy5vayA9PT0gdHJ1ZSAmJiByZXN0b3JlQWdhaW4uanNvbj8ucmVtb3ZlZCA9PT0gZmFsc2UsIGAke3Jlc3RvcmVBZ2Fpbi5zdGF0dXN9ICR7SlNPTi5zdHJpbmdpZnkocmVzdG9yZUFnYWluLmpzb24pfWApCiAgICBob3N0LnNldEZhaWxNbUEoZmFsc2UpCiAgfQoKICAvLyAyZCkgL3Byb2JlL3Jlc3RvcmUg5Y+C5pWw5qCh6aqM5LiO6Leo5rqQCiAgewogICAgY29uc3QgYmFkID0gYXdhaXQgY2FsbChgJHtST1VURX0vcHJvYmUvcmVzdG9yZWAsIHsKICAgICAgbWV0aG9kOiAnUE9TVCcsCiAgICAgIGhlYWRlcnM6IHsgJ2NvbnRlbnQtdHlwZSc6ICdhcHBsaWNhdGlvbi9qc29uJywgb3JpZ2luOiBPUklHSU4sIHJlZmVyZXI6IGAke09SSUdJTn0vYCB9LAogICAgICBib2R5OiBKU09OLnN0cmluZ2lmeSh7IHByb3ZpZGVyOiAnYWxwaGEnIH0pLAogICAgfSkKICAgIGNoZWNrKCcvcHJvYmUvcmVzdG9yZe+8mue8uiBtb2RlbCDlj4LmlbAgNDAwJywgYmFkLnN0YXR1cyA9PT0gNDAwLCBgJHtiYWQuc3RhdHVzfSAke0pTT04uc3RyaW5naWZ5KGJhZC5qc29uKX1gKQogICAgY29uc3QgZXZpbCA9IGF3YWl0IGNhbGwoYCR7Uk9VVEV9L3Byb2JlL3Jlc3RvcmVgLCB7CiAgICAgIG1ldGhvZDogJ1BPU1QnLAogICAgICBoZWFkZXJzOiB7ICdjb250ZW50LXR5cGUnOiAnYXBwbGljYXRpb24vanNvbicsIG9yaWdpbjogJ2h0dHA6Ly9ldmlsLmV4YW1wbGUnLCByZWZlcmVyOiAnaHR0cDovL2V2aWwuZXhhbXBsZS8nIH0sCiAgICAgIGJvZHk6IEpTT04uc3RyaW5naWZ5KHsgcHJvdmlkZXI6ICdhbHBoYScsIG1vZGVsOiAndGV4dC1hJyB9KSwKICAgIH0pCiAgICBjaGVjaygnL3Byb2JlL3Jlc3RvcmXvvJrot6jmupDor7fmsYIgNDAzJywgZXZpbC5zdGF0dXMgPT09IDQwMywgYCR7ZXZpbC5zdGF0dXN9YCkKICB9CgogIHsKICAgIGNvbnN0IHIgPSBhd2FpdCBwb3N0KHsgcHJvdmlkZXI6ICdiZXRhJywgbW9kZWw6ICd0ZXh0LWInIH0pCiAgICBjaGVjaygn5rWB5Lit5pat5L2G5pyJ5YaF5a6554mHIOKGkiBvazp0cnVl77yI5qih5Z6L55yf5a6e5ZON5bqU6L+H77yJJywgci5zdGF0dXMgPT09IDIwMCAmJiByLmpzb24/Lm9rID09PSB0cnVlICYmIHIuanNvbj8uc2FtcGxlID09PSAncGFydGlhbCcsIEpTT04uc3RyaW5naWZ5KHIuanNvbikpCiAgfQoKICAvLyAzYikgaW5mcmEg57qn44CM5o6i5rWL5aSx6LSl44CN5Lmf5oyB5LmF5YyW77yM5LuF5o6i5rWL6YCa6L+H5oiW5Lq65bel56e75Ye65omN5pS+5Ye677yI55So5oi35Y+j5b6EIG0wNDEzM++8iQogIHsKICAgIGNvbnN0IGtleSA9IG1vZGVsS2V5KCdhbHBoYScsICd0ZXh0LWEnKQogICAgaG9zdC5zZXRGYWlsSW5mcmFUZXh0QSh0cnVlKQogICAgY29uc3QgciA9IGF3YWl0IHBvc3QoeyBwcm92aWRlcjogJ2FscGhhJywgbW9kZWw6ICd0ZXh0LWEnIH0pCiAgICBjaGVjaygnaW5mcmEg5aSx6LSlIOKGkiAyMDAgb2s6ZmFsc2Uga2luZDppbmZyYScsIHIuc3RhdHVzID09PSAyMDAgJiYgci5qc29uPy5vayA9PT0gZmFsc2UgJiYgci5qc29uPy5raW5kID09PSAnaW5mcmEnLCBKU09OLnN0cmluZ2lmeShyLmpzb24pKQogICAgY2hlY2soJ2luZnJhIOWksei0pSDihpIg6L+bIHByb2JlSW5mcmFLZXlz77yI5o6i5rWL5aSx6LSl57uE77yJJywgX190ZXN0LnByb2JlSW5mcmFLZXlzKCkuaW5jbHVkZXMoa2V5KSwgSlNPTi5zdHJpbmdpZnkoX190ZXN0LnByb2JlSW5mcmFLZXlzKCkpKQogICAgY2hlY2soJ2luZnJhIOWksei0pSDihpIg5LiN6L+bIHByb2JlVW5hdmFpbGFibGVLZXlz77yI5Lik57uE5LqS5pal77yJJywgIV9fdGVzdC5wcm9iZVVuYXZhaWxhYmxlS2V5cygpLmluY2x1ZGVzKGtleSksIEpTT04uc3RyaW5naWZ5KF9fdGVzdC5wcm9iZVVuYXZhaWxhYmxlS2V5cygpKSkKICAgIHsKICAgICAgY29uc3QgcGVyc2lzdGVkID0gSlNPTi5wYXJzZShyZWFkRmlsZVN5bmMoX190ZXN0LnByb2JlRmlsZSwgJ3V0ZjgnKSkKICAgICAgY2hlY2soJ2luZnJhIOWksei0pSDihpIg5oyB5LmF5YyWIGluZnJhS2V5cyDlkKvor6XplK4nLCBBcnJheS5pc0FycmF5KHBlcnNpc3RlZC5pbmZyYUtleXMpICYmIHBlcnNpc3RlZC5pbmZyYUtleXMuaW5jbHVkZXMoa2V5KSwgSlNPTi5zdHJpbmdpZnkocGVyc2lzdGVkKSkKICAgICAgY2hlY2soJ2luZnJhIOWksei0pSDihpIg5oyB5LmF5YyWIGtleXMg5LiN5ZCr6K+l6ZSuJywgQXJyYXkuaXNBcnJheShwZXJzaXN0ZWQua2V5cykgJiYgIXBlcnNpc3RlZC5rZXlzLmluY2x1ZGVzKGtleSksIEpTT04uc3RyaW5naWZ5KHBlcnNpc3RlZCkpCiAgICB9CiAgICBjb25zdCBjYXQgPSBhd2FpdCBjYWxsKGAke1JPVVRFfS9jYXRhbG9nYCkKICAgIGNoZWNrKCdpbmZyYSDlpLHotKUg4oaSIOebruW9lSB1bmF2YWlsYWJsZUluZnJhIOWQq+ivpemUricsIEFycmF5LmlzQXJyYXkoY2F0Lmpzb24/LnVuYXZhaWxhYmxlSW5mcmEpICYmIGNhdC5qc29uLnVuYXZhaWxhYmxlSW5mcmEuaW5jbHVkZXMoa2V5KSwgSlNPTi5zdHJpbmdpZnkoY2F0Lmpzb24/LnVuYXZhaWxhYmxlSW5mcmEgPz8gbnVsbCkpCiAgICBob3N0LnNldEZhaWxJbmZyYVRleHRBKGZhbHNlKQogICAgY29uc3Qgb2sgPSBhd2FpdCBwb3N0KHsgcHJvdmlkZXI6ICdhbHBoYScsIG1vZGVsOiAndGV4dC1hJyB9KQogICAgY2hlY2soJ+mHjea1i+mAmui/hyDihpIgMjAwIG9rOnRydWUnLCBvay5zdGF0dXMgPT09IDIwMCAmJiBvay5qc29uPy5vayA9PT0gdHJ1ZSwgSlNPTi5zdHJpbmdpZnkob2suanNvbikpCiAgICBjaGVjaygn6YeN5rWL6YCa6L+HIOKGkiBwcm9iZUluZnJhS2V5cyDmlL7lh7ror6XplK4nLCAhX190ZXN0LnByb2JlSW5mcmFLZXlzKCkuaW5jbHVkZXMoa2V5KSwgSlNPTi5zdHJpbmdpZnkoX190ZXN0LnByb2JlSW5mcmFLZXlzKCkpKQogICAgewogICAgICBjb25zdCBwZXJzaXN0ZWQgPSBKU09OLnBhcnNlKHJlYWRGaWxlU3luYyhfX3Rlc3QucHJvYmVGaWxlLCAndXRmOCcpKQogICAgICBjaGVjaygn6YeN5rWL6YCa6L+HIOKGkiDmjIHkuYXljJYgaW5mcmFLZXlzIOenu+WHuuivpemUricsIEFycmF5LmlzQXJyYXkocGVyc2lzdGVkLmluZnJhS2V5cykgJiYgIXBlcnNpc3RlZC5pbmZyYUtleXMuaW5jbHVkZXMoa2V5KSwgSlNPTi5zdHJpbmdpZnkocGVyc2lzdGVkKSkKICAgIH0KICAgIGhvc3Quc2V0RmFpbEluZnJhVGV4dEEodHJ1ZSkKICAgIGF3YWl0IHBvc3QoeyBwcm92aWRlcjogJ2FscGhhJywgbW9kZWw6ICd0ZXh0LWEnIH0pCiAgICBjaGVjaygn5YaN5aSx6LSlIOKGkiDph43mlrDov5sgcHJvYmVJbmZyYUtleXMnLCBfX3Rlc3QucHJvYmVJbmZyYUtleXMoKS5pbmNsdWRlcyhrZXkpLCBKU09OLnN0cmluZ2lmeShfX3Rlc3QucHJvYmVJbmZyYUtleXMoKSkpCiAgICBjb25zdCByZXN0b3JlID0gYXdhaXQgY2FsbChgJHtST1VURX0vcHJvYmUvcmVzdG9yZWAsIHsKICAgICAgbWV0aG9kOiAnUE9TVCcsCiAgICAgIGhlYWRlcnM6IHsgJ2NvbnRlbnQtdHlwZSc6ICdhcHBsaWNhdGlvbi9qc29uJywgb3JpZ2luOiBPUklHSU4sIHJlZmVyZXI6IGAke09SSUdJTn0vYCB9LAogICAgICBib2R5OiBKU09OLnN0cmluZ2lmeSh7IHByb3ZpZGVyOiAnYWxwaGEnLCBtb2RlbDogJ3RleHQtYScgfSksCiAgICB9KQogICAgY2hlY2soJ+S6uuW3peenu+WHuiDihpIgMjAwIHJlbW92ZWQ6dHJ1ZSBraW5kOmluZnJhJywgcmVzdG9yZS5zdGF0dXMgPT09IDIwMCAmJiByZXN0b3JlLmpzb24/LnJlbW92ZWQgPT09IHRydWUgJiYgcmVzdG9yZS5qc29uPy5raW5kID09PSAnaW5mcmEnLCBKU09OLnN0cmluZ2lmeShyZXN0b3JlLmpzb24pKQogICAgY2hlY2soJ+S6uuW3peenu+WHuiDihpIgcHJvYmVJbmZyYUtleXMg5pS+5Ye66K+l6ZSuJywgIV9fdGVzdC5wcm9iZUluZnJhS2V5cygpLmluY2x1ZGVzKGtleSksIEpTT04uc3RyaW5naWZ5KF9fdGVzdC5wcm9iZUluZnJhS2V5cygpKSkKICAgIHsKICAgICAgY29uc3QgcGVyc2lzdGVkID0gSlNPTi5wYXJzZShyZWFkRmlsZVN5bmMoX190ZXN0LnByb2JlRmlsZSwgJ3V0ZjgnKSkKICAgICAgY2hlY2soJ+S6uuW3peenu+WHuiDihpIg5oyB5LmF5YyWIGluZnJhS2V5cyDnp7vlh7ror6XplK4nLCBBcnJheS5pc0FycmF5KHBlcnNpc3RlZC5pbmZyYUtleXMpICYmICFwZXJzaXN0ZWQuaW5mcmFLZXlzLmluY2x1ZGVzKGtleSksIEpTT04uc3RyaW5naWZ5KHBlcnNpc3RlZCkpCiAgICB9CiAgICBob3N0LnNldEZhaWxJbmZyYVRleHRBKGZhbHNlKQogIH0KCiAgLy8gNCkg55uu5b2V5aSW5qih5Z6LIDQwNAogIHsKICAgIGNvbnN0IHIgPSBhd2FpdCBwb3N0KHsgcHJvdmlkZXI6ICdhbHBoYScsIG1vZGVsOiAnZ2hvc3QnIH0pCiAgICBjaGVjaygn55uu5b2V5aSW5qih5Z6LIDQwNCcsIHIuc3RhdHVzID09PSA0MDQgJiYgci5qc29uPy5lcnJvciA9PT0gJ21vZGVsIG5vdCBpbiBjYXRhbG9nJywgYCR7ci5zdGF0dXN9ICR7ci50ZXh0LnNsaWNlKDAsIDEyMCl9YCkKICB9CgogIC8vIDUpIOi3qOa6kCA0MDMKICB7CiAgICBjb25zdCByID0gYXdhaXQgcG9zdCh7IHByb3ZpZGVyOiAnYWxwaGEnLCBtb2RlbDogJ3RleHQtYScgfSwgeyBoZWFkZXJzOiB7IG9yaWdpbjogJ2h0dHA6Ly9ldmlsLmV4YW1wbGUnLCByZWZlcmVyOiAnaHR0cDovL2V2aWwuZXhhbXBsZS8nIH0gfSkKICAgIGNoZWNrKCfot6jmupDor7fmsYIgNDAzJywgci5zdGF0dXMgPT09IDQwMywgYCR7ci5zdGF0dXN9ICR7ci50ZXh0LnNsaWNlKDAsIDEyMCl9YCkKICB9CgogIC8vIDYpIOe8uuWPguaVsCA0MDAKICB7CiAgICBjb25zdCByID0gYXdhaXQgcG9zdCh7IHByb3ZpZGVyOiAnYWxwaGEnIH0pCiAgICBjaGVjaygn57y6IG1vZGVsIOWPguaVsCA0MDAnLCByLnN0YXR1cyA9PT0gNDAwLCBgJHtyLnN0YXR1c30gJHtyLnRleHQuc2xpY2UoMCwgMTIwKX1gKQogIH0KCiAgY29uc29sZS5sb2coZmFpbHVyZXMubGVuZ3RoID09PSAwID8gYFxu5YWo6YOo6YCa6L+H77yaJHtwYXNzZWR9IOmhuWAgOiBgXG7lpLHotKUgJHtmYWlsdXJlcy5sZW5ndGh9IOmhuWApCiAgcHJvY2Vzcy5leGl0KGZhaWx1cmVzLmxlbmd0aCA9PT0gMCA/IDAgOiAxKQp9IGZpbmFsbHkgewogIHNlcnZlci5jbG9zZSgpCn0K
+#!/usr/bin/env node
+// /test-model 连通性测试端点冒烟：真实 http 服务 + 真实 lib/index.js handler，
+// 用宿主替身 llm.prepareCall 驱动 5 条路径（成功/失败/流中断/404/跨源403），不依赖桌面端重启。
+import http from 'node:http'
+import assert from 'node:assert/strict'
+import { apply, __test } from '../lib/index.js'
+import { modelKey } from '../lib/core.js'
+import { writeFileSync, readFileSync, mkdirSync, rmSync } from 'node:fs'
+import { dirname } from 'node:path'
+
+// 清理测试产生的持久化文件与 data 目录，避免污染仓库（仓库根无 gitignore/data）。
+// 必须在任何 process.exit() 之前注册：exit 钩子在任何退出路径都执行（含 process.exit 跳过 finally 的情况）。
+process.on('exit', () => {
+  try {
+    rmSync(dirname(__test.probeFile), { recursive: true, force: true })
+  } catch {
+    // 清理失败不影响测试结论
+  }
+})
+
+const PORT = Number(process.env.SMOKE_PORT ?? 34319)
+const ROUTE = __test.ROUTE_PREFIX
+const ORIGIN = `http://127.0.0.1:${PORT}`
+
+function makeHost() {
+  const providers = [
+    { id: 'alpha', name: 'Alpha 官方', displayName: 'Alpha', settingsNs: 'llm-alpha' },
+    { id: 'beta', name: 'Beta', settingsNs: 'llm-beta' },
+  ]
+  const models = {
+    alpha: [
+      { id: 'text-a', name: 'Text A', inputModalities: ['text'] },
+      { id: 'mm-a', name: 'MM A', inputModalities: ['text', 'image'] },
+      { id: 'a-hide-1', name: 'A-Hide-1', inputModalities: ['text'] },
+    ],
+    beta: [{ id: 'text-b', name: 'Text B' }],
+  }
+  const probes = []
+  let failMmA = true
+  let failInfraTextA = false
+  const services = {
+    llm: {
+      listProviders: () => providers,
+      listModels: async (pid) => models[pid] ?? [],
+      resolveModelInfo: async (pid, mid) => ({ provider: pid, id: mid, name: mid, inputModalities: undefined }),
+      // 与宿主 dsh-llm:2225 同形：返回 {config, stream}；stream 只接受与 config 相容的 options
+      async prepareCall(config, signal) {
+        probes.push({ provider: config.provider, model: config.model, maxTokens: config.maxTokens })
+        if (config.model === 'text-a' && failInfraTextA) throw new Error('fetch failed')
+        return {
+          config: { ...config, temperature: 0.7 },
+          async *stream(options) {
+            assert.equal(options.provider, config.provider)
+            assert.equal(options.model, config.model)
+            assert.equal(options.maxTokens, config.maxTokens, 'stream options 必须携带与 config 相同的 maxTokens（callConfigEquals 校验面）')
+            assert.ok(Array.isArray(options.messages) && options.messages.length === 2, '必须带 messages（system + user 两条，真机 m01436：workbuddy 网关要求首条为 system）')
+            assert.equal(options.messages[0]?.role, 'system', '首条消息必须是 system（网关格式要求，对齐宿主真实调用）')
+            // 真机 m02715 回归：宿主 contentHasFile/Image 会对 content 调 .some()/遍历，
+            // content 必须是结构化块数组而非裸字符串，否则抛 "content.some is not a function"。
+            const content = options.messages[1]?.content
+            assert.ok(Array.isArray(content) && content[0]?.type === 'text' && typeof content[0]?.text === 'string', 'message.content 必须是 [{type:"text",text}] 结构化块数组（宿主契约）')
+            if (config.model === 'mm-a' && failMmA) {
+              yield { type: 'finish', reason: { kind: 'error', failure: { code: 'UPSTREAM_401', message: '上游 401：api key 无效' } } }
+              return
+            }
+            if (config.model === 'text-b') {
+              yield { delta: { text: 'partial' } }
+              return // 流中断，没有 finish chunk
+            }
+            yield { delta: { text: 'pong' } }
+            yield { type: 'finish', reason: { kind: 'stop' } }
+          },
+        }
+      },
+    },
+    agents: { list: () => [] },
+    sessionController: { agents: {} },
+    sessionProjections: { stateOf: () => undefined },
+    agentDefaultModel: { currentSelection: () => ({ provider: 'alpha', model: 'text-a' }) },
+  }
+  let handler = null
+  return {
+    probes,
+    setFailMmA: (v) => { failMmA = v },
+    setFailInfraTextA: (v) => { failInfraTextA = v },
+    get handler() {
+      return handler
+    },
+    ctx: {
+      get: (name) => services[name],
+      on: () => () => {},
+      effect: () => () => {},
+      webServer: {
+        register: (options) => {
+          handler = options.handler
+          return () => {
+            handler = null
+          }
+        },
+      },
+    },
+  }
+}
+
+const host = makeHost()
+
+// ④ fail-closed 持久化测试：apply 前预置一份上次的暂不可用记录，
+// 用以验证「重启后沿用上次结果」的回填路径，以及探测后写回刷新。
+const presetKey = 'preset/preset-1'
+const presetInfraKey = 'preset/preset-infra-1'
+mkdirSync(dirname(__test.probeFile), { recursive: true })
+writeFileSync(__test.probeFile, JSON.stringify({ savedAt: 1, keys: [presetKey], infraKeys: [presetInfraKey] }), 'utf8')
+
+apply(host.ctx, { maxRetries: 1, retryDelayMs: 0, hiddenModels: ['alpha/a-hide-1'] })
+
+const server = http.createServer((req, res) => {
+  if (typeof host.handler === 'function') host.handler(req, res)
+  else {
+    res.statusCode = 503
+    res.end('no handler')
+  }
+})
+
+let passed = 0
+const failures = []
+function check(name, ok, detail) {
+  if (ok) passed += 1
+  else failures.push(name)
+  console.log(`${ok ? '  ok ' : '  FAIL'} ${name}${ok ? '' : ` → ${detail}`}`)
+}
+
+async function call(path, init = {}) {
+  const res = await fetch(`${ORIGIN}${path}`, init)
+  const text = await res.text()
+  let json
+  try {
+    json = JSON.parse(text)
+  } catch {
+    json = undefined
+  }
+  return { status: res.status, text, json }
+}
+
+const post = (body, extra = {}) => call(`${ROUTE}/test-model`, {
+  method: 'POST',
+  headers: { 'content-type': 'application/json', origin: ORIGIN, referer: `${ORIGIN}/`, ...(extra.headers ?? {}) },
+  body: JSON.stringify(body),
+})
+
+await new Promise((resolve) => server.listen(PORT, '127.0.0.1', resolve))
+try {
+  await call(`${ROUTE}/catalog?refresh=1`) // 先把目录建起来
+
+  // ④ fail-closed 持久化：apply 前的预置记录应被回填进暂不可用集合
+  {
+    const keys = __test.probeUnavailableKeys()
+    check('④ 预置持久化记录被回填进暂不可用集合', keys.includes(presetKey), JSON.stringify(keys))
+    const infraKeys = __test.probeInfraKeys()
+    check('④ 预置 infraKeys 被回填进探测失败集合', infraKeys.includes(presetInfraKey), JSON.stringify(infraKeys))
+  }
+
+  // ④ fail-closed 持久化：runScheduledProbe 之后应把当前集合写回磁盘并刷新时间戳
+  {
+    const before = JSON.parse(readFileSync(__test.probeFile, 'utf8'))
+    await __test.runScheduledProbe()
+    const after = JSON.parse(readFileSync(__test.probeFile, 'utf8'))
+    check('④ 探测后持久化文件已刷新（savedAt 被更新）', typeof after.savedAt === 'number' && after.savedAt !== before.savedAt, JSON.stringify(after))
+    check('④ 探测后持久化文件含当前暂不可用键', Array.isArray(after.keys) && after.keys.includes(presetKey), JSON.stringify(after))
+    check('④ 探测后持久化文件含当前探测失败键', Array.isArray(after.infraKeys) && after.infraKeys.includes(presetInfraKey), JSON.stringify(after))
+  }
+
+  // 0) 隐藏模型（hidden）不应进定时探测队列，也不应进暂不可用集合
+  {
+    await __test.runScheduledProbe()
+    check('隐藏模型不应进探测队列', !host.probes.some((p) => p.model === 'a-hide-1'), JSON.stringify(host.probes))
+    check('隐藏模型不应进暂不可用集合', !__test.probeUnavailableKeys().includes(modelKey('alpha', 'a-hide-1')), JSON.stringify(__test.probeUnavailableKeys()))
+  }
+
+  // 1) 成功路径：text-a 返回 ok:true + ms + sample
+  {
+    const r = await post({ provider: 'alpha', model: 'text-a' })
+    check('成功路径 200 ok:true 且 ms>0', r.status === 200 && r.json?.ok === true && typeof r.json?.ms === 'number' && r.json.ms >= 0, JSON.stringify(r.json))
+    check('成功路径带 sample 片段', r.json?.sample === 'pong', JSON.stringify(r.json))
+    check('成功路径已真实调用 prepareCall（maxTokens=32）', host.probes.at(-1)?.maxTokens === 32 && host.probes.at(-1)?.model === 'text-a', JSON.stringify(host.probes.at(-1)))
+    check('成功探测不加入暂不可用集合', !__test.probeUnavailableKeys().includes(modelKey('alpha', 'text-a')), JSON.stringify(__test.probeUnavailableKeys()))
+  }
+
+  // 2) 失败路径：mm-a 上游 401 → ok:false + error 原文
+  {
+    const r = await post({ provider: 'alpha', model: 'mm-a' })
+    check('失败路径 200 ok:false 且带上游错误原文', r.status === 200 && r.json?.ok === false && String(r.json?.error ?? '').includes('401'), JSON.stringify(r.json))
+    check('失败探测加入暂不可用集合', __test.probeUnavailableKeys().includes(modelKey('alpha', 'mm-a')), JSON.stringify(__test.probeUnavailableKeys()))
+    host.setFailMmA(false)
+    {
+      const r2 = await post({ provider: 'alpha', model: 'mm-a' })
+      check('重测通过自动移出暂不可用集合', r2.status === 200 && r2.json?.ok === true && !__test.probeUnavailableKeys().includes(modelKey('alpha', 'mm-a')), JSON.stringify(r2.json))
+    }
+  }
+
+  // 3) 流中断：text-b 只有内容片没有 finish → 判定可用（模型确实响应了）
+  // 2b) 探测后目录快照立即反映不可调：/test-model 写 probeUnavailable 后必须失效 catalog 缓存，
+  //     否则 /catalog（不带 refresh）仍返回探测前的旧快照，下拉会留下刚被标「不可调」的模型。
+  {
+    host.setFailMmA(true)
+    const before = await call(`${ROUTE}/catalog`)
+    const beforeHas = Array.isArray(before.json?.unavailableModels) && before.json.unavailableModels.includes(modelKey('alpha', 'mm-a'))
+    check('探测前：目录快照不含该模型（基线）', before.status === 200 && !beforeHas, `${before.status} ${JSON.stringify(before.json?.unavailableModels ?? null)}`)
+    await post({ provider: 'alpha', model: 'mm-a' })
+    const after = await call(`${ROUTE}/catalog`)
+    const afterHas = Array.isArray(after.json?.unavailableModels) && after.json.unavailableModels.includes(modelKey('alpha', 'mm-a'))
+    check('探测后：目录快照立即含不可调模型（缓存已失效，不等 TTL）', after.status === 200 && afterHas, `${after.status} ${JSON.stringify(after.json?.unavailableModels ?? null)}`)
+    host.setFailMmA(false)
+    await post({ provider: 'alpha', model: 'mm-a' })
+    const cleared = await call(`${ROUTE}/catalog`)
+    const clearedHas = Array.isArray(cleared.json?.unavailableModels) && cleared.json.unavailableModels.includes(modelKey('alpha', 'mm-a'))
+    check('重测通过后：目录快照立即移出不可调（缓存同样即时失效）', cleared.status === 200 && !clearedHas, `${cleared.status} ${JSON.stringify(cleared.json?.unavailableModels ?? null)}`)
+  }
+
+  // 2c) /probe/restore：人工把模型从暂不可用组移出，必须立即反映到目录快照（等价即时失效），
+  //     否则「移出不可用」按钮点了但下拉里模型仍不见，用户会以为没生效。
+  {
+    host.setFailMmA(true)
+    await post({ provider: 'alpha', model: 'mm-a' })
+    const afterFail = await call(`${ROUTE}/catalog`)
+    const afterFailHas = Array.isArray(afterFail.json?.unavailableModels) && afterFail.json?.unavailableModels.includes(modelKey('alpha', 'mm-a'))
+    check('restore 前置：探测失败后模型进入不可用组（基线）', afterFail.status === 200 && afterFailHas, `${afterFail.status} ${JSON.stringify(afterFail.json?.unavailableModels ?? null)}`)
+    const restore = await call(`${ROUTE}/probe/restore`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', origin: ORIGIN, referer: `${ORIGIN}/` },
+      body: JSON.stringify({ provider: 'alpha', model: 'mm-a' }),
+    })
+    check('/probe/restore：移出返回 200 ok:true removed:true', restore.status === 200 && restore.json?.ok === true && restore.json?.removed === true, `${restore.status} ${JSON.stringify(restore.json)}`)
+    check('/probe/restore：集合中已移出该模型', !__test.probeUnavailableKeys().includes(modelKey('alpha', 'mm-a')), JSON.stringify(__test.probeUnavailableKeys()))
+    const restored = await call(`${ROUTE}/catalog`)
+    const restoredHas = Array.isArray(restored.json?.unavailableModels) && restored.json?.unavailableModels.includes(modelKey('alpha', 'mm-a'))
+    check('/probe/restore：目录快照立即移出该模型（缓存已失效，不等 TTL）', restored.status === 200 && !restoredHas, `${restored.status} ${JSON.stringify(restored.json?.unavailableModels ?? null)}`)
+    const restoreAgain = await call(`${ROUTE}/probe/restore`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', origin: ORIGIN, referer: `${ORIGIN}/` },
+      body: JSON.stringify({ provider: 'alpha', model: 'mm-a' }),
+    })
+    check('/probe/restore：重复移出幂等（200 removed:false）', restoreAgain.status === 200 && restoreAgain.json?.ok === true && restoreAgain.json?.removed === false, `${restoreAgain.status} ${JSON.stringify(restoreAgain.json)}`)
+    host.setFailMmA(false)
+  }
+
+  // 2d) /probe/restore 参数校验与跨源
+  {
+    const bad = await call(`${ROUTE}/probe/restore`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', origin: ORIGIN, referer: `${ORIGIN}/` },
+      body: JSON.stringify({ provider: 'alpha' }),
+    })
+    check('/probe/restore：缺 model 参数 400', bad.status === 400, `${bad.status} ${JSON.stringify(bad.json)}`)
+    const evil = await call(`${ROUTE}/probe/restore`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', origin: 'http://evil.example', referer: 'http://evil.example/' },
+      body: JSON.stringify({ provider: 'alpha', model: 'text-a' }),
+    })
+    check('/probe/restore：跨源请求 403', evil.status === 403, `${evil.status}`)
+  }
+
+  {
+    const r = await post({ provider: 'beta', model: 'text-b' })
+    check('流中断但有内容片 → ok:true（模型真实响应过）', r.status === 200 && r.json?.ok === true && r.json?.sample === 'partial', JSON.stringify(r.json))
+  }
+
+  // 3b) infra 级「探测失败」也持久化，仅探测通过或人工移出才放出（用户口径 m04133）
+  {
+    const key = modelKey('alpha', 'text-a')
+    host.setFailInfraTextA(true)
+    const r = await post({ provider: 'alpha', model: 'text-a' })
+    check('infra 失败 → 200 ok:false kind:infra', r.status === 200 && r.json?.ok === false && r.json?.kind === 'infra', JSON.stringify(r.json))
+    check('infra 失败 → 进 probeInfraKeys（探测失败组）', __test.probeInfraKeys().includes(key), JSON.stringify(__test.probeInfraKeys()))
+    check('infra 失败 → 不进 probeUnavailableKeys（两组互斥）', !__test.probeUnavailableKeys().includes(key), JSON.stringify(__test.probeUnavailableKeys()))
+    {
+      const persisted = JSON.parse(readFileSync(__test.probeFile, 'utf8'))
+      check('infra 失败 → 持久化 infraKeys 含该键', Array.isArray(persisted.infraKeys) && persisted.infraKeys.includes(key), JSON.stringify(persisted))
+      check('infra 失败 → 持久化 keys 不含该键', Array.isArray(persisted.keys) && !persisted.keys.includes(key), JSON.stringify(persisted))
+    }
+    const cat = await call(`${ROUTE}/catalog`)
+    check('infra 失败 → 目录 unavailableInfra 含该键', Array.isArray(cat.json?.unavailableInfra) && cat.json.unavailableInfra.includes(key), JSON.stringify(cat.json?.unavailableInfra ?? null))
+    host.setFailInfraTextA(false)
+    const ok = await post({ provider: 'alpha', model: 'text-a' })
+    check('重测通过 → 200 ok:true', ok.status === 200 && ok.json?.ok === true, JSON.stringify(ok.json))
+    check('重测通过 → probeInfraKeys 放出该键', !__test.probeInfraKeys().includes(key), JSON.stringify(__test.probeInfraKeys()))
+    {
+      const persisted = JSON.parse(readFileSync(__test.probeFile, 'utf8'))
+      check('重测通过 → 持久化 infraKeys 移出该键', Array.isArray(persisted.infraKeys) && !persisted.infraKeys.includes(key), JSON.stringify(persisted))
+    }
+    host.setFailInfraTextA(true)
+    await post({ provider: 'alpha', model: 'text-a' })
+    check('再失败 → 重新进 probeInfraKeys', __test.probeInfraKeys().includes(key), JSON.stringify(__test.probeInfraKeys()))
+    const restore = await call(`${ROUTE}/probe/restore`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', origin: ORIGIN, referer: `${ORIGIN}/` },
+      body: JSON.stringify({ provider: 'alpha', model: 'text-a' }),
+    })
+    check('人工移出 → 200 removed:true kind:infra', restore.status === 200 && restore.json?.removed === true && restore.json?.kind === 'infra', JSON.stringify(restore.json))
+    check('人工移出 → probeInfraKeys 放出该键', !__test.probeInfraKeys().includes(key), JSON.stringify(__test.probeInfraKeys()))
+    {
+      const persisted = JSON.parse(readFileSync(__test.probeFile, 'utf8'))
+      check('人工移出 → 持久化 infraKeys 移出该键', Array.isArray(persisted.infraKeys) && !persisted.infraKeys.includes(key), JSON.stringify(persisted))
+    }
+    host.setFailInfraTextA(false)
+  }
+
+  // 4) 目录外模型 404
+  {
+    const r = await post({ provider: 'alpha', model: 'ghost' })
+    check('目录外模型 404', r.status === 404 && r.json?.error === 'model not in catalog', `${r.status} ${r.text.slice(0, 120)}`)
+  }
+
+  // 5) 跨源 403
+  {
+    const r = await post({ provider: 'alpha', model: 'text-a' }, { headers: { origin: 'http://evil.example', referer: 'http://evil.example/' } })
+    check('跨源请求 403', r.status === 403, `${r.status} ${r.text.slice(0, 120)}`)
+  }
+
+  // 6) 缺参数 400
+  {
+    const r = await post({ provider: 'alpha' })
+    check('缺 model 参数 400', r.status === 400, `${r.status} ${r.text.slice(0, 120)}`)
+  }
+
+  console.log(failures.length === 0 ? `\n全部通过：${passed} 项` : `\n失败 ${failures.length} 项`)
+  process.exit(failures.length === 0 ? 0 : 1)
+} finally {
+  server.close()
+}

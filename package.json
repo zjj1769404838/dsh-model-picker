@@ -1,1 +1,70 @@
-ewogICJuYW1lIjogIkB6ampsaXZpbmdmcmVlL2RzaC1tb2RlbC1waWNrZXIiLAogICJ2ZXJzaW9uIjogIjAuMS41IiwKICAiZGVzY3JpcHRpb24iOiAi5pu/5o2iIGRzaCDpu5jorqTmqKHlnovpgInmi6npgLvovpHvvJrmqKHlnovliJfooajliIbnsbvvvIjnuq/mlofmnKwv5aSa5qih5oCB77yJ5LiO5p2l5rqQ5qCH5rOo44CB55So5oi36buY6K6k5qih5Z6L44CB5Y+v6YWN572u6YeN6K+V44CB5ZCM57G75Z6L5qih5Z6L6Ieq5Yqo5YiH5o2i44CB5Lya6K+d5Y2g55So6KeE6YG/44CB5YWo6YOo5LiN5Y+v55So5ZCOIDMwIOWIhumSn+WGt+WNtOaBouWkje+8jOWFqOa1geeoi+WPr+WIpOWumuW5tuiQvSBwbHVnaW4gcmVjb3JkIOaXpeW/l+OAgiIsCiAgInR5cGUiOiAibW9kdWxlIiwKICAibWFpbiI6ICJsaWIvaW5kZXguanMiLAogICJleHBvcnRzIjogewogICAgIi4iOiAiLi9saWIvaW5kZXguanMiLAogICAgIi4vY2xpZW50IjogIi4vbGliL2NsaWVudC5qcyIsCiAgICAiLi9jb3JlIjogIi4vbGliL2NvcmUuanMiLAogICAgIi4vcGFja2FnZS5qc29uIjogIi4vcGFja2FnZS5qc29uIiwKICAgICIuL2NvcmRpcy5wYXRjaC55bWwiOiAiLi9jb3JkaXMucGF0Y2gueW1sIgogIH0sCiAgImRzaCI6IHsKICAgICJidW5kbGUiOiB7CiAgICAgICJwYXRjaCI6ICIuL2NvcmRpcy5wYXRjaC55bWwiCiAgICB9LAogICAgImNsaWVudCI6IHsKICAgICAgImluamVjdCI6IFsKICAgICAgICAiQGRlZXBzZWVrLWFpL2RzaC1jbGllbnQtdWktc2xvdHMiLAogICAgICAgICJAZGVlcHNlZWstYWkvZHNoLWNsaWVudC11aS1tb2RlbC1zZWxlY3Rpb24iLAogICAgICAgICJAZGVlcHNlZWstYWkvZHNoLWFwaS1zZXNzaW9uLWNvbnRyb2xsZXIiLAogICAgICAgICJAZGVlcHNlZWstYWkvZHNoLXNlc3Npb24iLAogICAgICAgICJAZGVlcHNlZWstYWkvZHNoLWFwaS1yZW1vdGVzIgogICAgICBdLAogICAgICAicGxhdGZvcm0iOiAid2ViIgogICAgfSwKICAgICJtYW5pZmVzdFZlcnNpb24iOiAxCiAgfSwKICAic2NyaXB0cyI6IHsKICAgICJidW5kbGUiOiAibm9kZSBzY3JpcHRzL2J1aWxkLm1qcyIsCiAgICAiYnVpbGQiOiAibm9kZSBzY3JpcHRzL2J1aWxkLm1qcyIsCiAgICAidGVzdCI6ICJub2RlIC0taW1wb3J0IC4vc2NyaXB0cy9ob3N0LXJlc29sdmUubWpzIHNjcmlwdHMvdGVzdC1hdXRvLXNlbGVjdC5tanMiLAogICAgInRlc3Q6YWxsIjogIm5vZGUgLS1pbXBvcnQgLi9zY3JpcHRzL2hvc3QtcmVzb2x2ZS5tanMgc2NyaXB0cy90ZXN0LWF1dG8tc2VsZWN0Lm1qcyAmJiBub2RlIHNjcmlwdHMvdGVzdC1jbGllbnQtZG9tLm1qcyAmJiBub2RlIC0taW1wb3J0IC4vc2NyaXB0cy9ob3N0LXJlc29sdmUubWpzIHNjcmlwdHMvc21va2UtaHR0cC5tanMgJiYgbm9kZSBzY3JpcHRzL3Ntb2tlLXByb2JlLm1qcyAmJiBub2RlIC0taW1wb3J0IC4vc2NyaXB0cy9ob3N0LXJlc29sdmUubWpzIHNjcmlwdHMvc21va2UtcGx1Z2luLXJlY29yZC5tanMiLAogICAgInRlc3Q6Y2xpZW50IjogIm5vZGUgc2NyaXB0cy90ZXN0LWNsaWVudC1kb20ubWpzIiwKICAgICJzbW9rZTpodHRwIjogIm5vZGUgLS1pbXBvcnQgLi9zY3JpcHRzL2hvc3QtcmVzb2x2ZS5tanMgc2NyaXB0cy9zbW9rZS1odHRwLm1qcyIsCiAgICAic21va2U6cHJvYmUiOiAibm9kZSBzY3JpcHRzL3Ntb2tlLXByb2JlLm1qcyIsCiAgICAic21va2U6cmVjb3JkIjogIm5vZGUgLS1pbXBvcnQgLi9zY3JpcHRzL2hvc3QtcmVzb2x2ZS5tanMgc2NyaXB0cy9zbW9rZS1wbHVnaW4tcmVjb3JkLm1qcyIKICB9LAogICJmaWxlcyI6IFsKICAgICJsaWIiLAogICAgImNvcmRpcy5wYXRjaC55bWwiLAogICAgIlJFQURNRS5tZCIKICBdLAogICJsaWNlbnNlIjogIk1JVCIsCiAgImRldkRlcGVuZGVuY2llcyI6IHsKICAgICJlc2J1aWxkIjogIl4wLjI4LjIiCiAgfSwKICAia2V5d29yZHMiOiBbCiAgICAiZHNoLXBsdWdpbiIsCiAgICAiZGVlcHNlZWstaGFybmVzcyIsCiAgICAiZHNoIiwKICAgICJtb2RlbCIsCiAgICAibW9kZWwtc2VsZWN0aW9uIiwKICAgICJmYWlsb3ZlciIsCiAgICAicmV0cnkiLAogICAgImNvb2xkb3duIiwKICAgICJtdWx0aW1vZGFsIgogIF0sCiAgImVuZ2luZXMiOiB7CiAgICAibm9kZSI6ICI+PTIwIiwKICAgICJkc2giOiAiPj0wLjIuMC1yYy4xIDwwLjMuMC0wIgogIH0sCiAgInB1Ymxpc2hDb25maWciOiB7CiAgICAiYWNjZXNzIjogInB1YmxpYyIKICB9LAogICJhdXRob3IiOiB7CiAgICAibmFtZSI6ICJ6amoiCiAgfQp9Cg==
+{
+  "name": "@zjjlivingfree/dsh-model-picker",
+  "version": "0.1.6",
+  "description": "替换 dsh 默认模型选择逻辑：模型列表分类（纯文本/多模态）与来源标注、用户默认模型、可配置重试、同类型模型自动切换、会话占用规避、全部不可用后 30 分钟冷却恢复，全流程可判定并落 plugin record 日志。",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./core": "./lib/core.js",
+    "./package.json": "./package.json",
+    "./cordis.patch.yml": "./cordis.patch.yml"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-slots",
+        "@deepseek-ai/dsh-client-ui-model-selection",
+        "@deepseek-ai/dsh-api-session-controller",
+        "@deepseek-ai/dsh-session",
+        "@deepseek-ai/dsh-api-remotes"
+      ],
+      "platform": "web"
+    },
+    "manifestVersion": 1
+  },
+  "scripts": {
+    "bundle": "node scripts/build.mjs",
+    "build": "node scripts/build.mjs",
+    "test": "node --import ./scripts/host-resolve.mjs scripts/test-auto-select.mjs",
+    "test:all": "node --import ./scripts/host-resolve.mjs scripts/test-auto-select.mjs && node scripts/test-client-dom.mjs && node --import ./scripts/host-resolve.mjs scripts/smoke-http.mjs && node scripts/smoke-probe.mjs && node --import ./scripts/host-resolve.mjs scripts/smoke-plugin-record.mjs",
+    "test:client": "node scripts/test-client-dom.mjs",
+    "smoke:http": "node --import ./scripts/host-resolve.mjs scripts/smoke-http.mjs",
+    "smoke:probe": "node scripts/smoke-probe.mjs",
+    "smoke:record": "node --import ./scripts/host-resolve.mjs scripts/smoke-plugin-record.mjs"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  },
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "dsh",
+    "model",
+    "model-selection",
+    "failover",
+    "retry",
+    "cooldown",
+    "multimodal"
+  ],
+  "engines": {
+    "node": ">=20",
+    "dsh": ">=0.2.0-rc.1 <0.3.0-0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "author": {
+    "name": "zjj"
+  }
+}
