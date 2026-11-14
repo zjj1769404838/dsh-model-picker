@@ -143,6 +143,8 @@ interface CatalogView {
     freeBadgeLabel: string
     defaultModel: any
     switchScope?: SwitchScope
+    /** 按模型预配置的推理等级：[{ key: 'provider/model', effort: id }]。 */
+    modelEfforts: Array<{ key: string; effort: string }>
   }
 }
 
@@ -951,6 +953,35 @@ function modelRow(entry: CatalogEntry, opts: { restore?: boolean } = {}): HTMLEl
       stage('hiddenModels', next ? list.filter((item) => item !== full) : [...list.filter((item) => item !== full), full], `${next ? '显示' : '隐藏'}「${entry.name || entry.model}」在模型下拉`)
     }),
   )
+
+  // 推理等级：按模型预配置。仅当该模型披露 reasoning 时出现下拉；选值写进 modelEfforts
+  // 草稿，保存后由服务端在选中该模型时附带（手动选与自动切换都带）。
+  if (entry.reasoning !== undefined) {
+    const reasoning = entry.reasoning
+    const effortKey = `${entry.provider}/${entry.model}`
+    const effortSelect = document.createElement('select')
+    effortSelect.style.cssText = `height:32px;border-radius:${TOK.radius};border:none;background:${TOK.module};color:${TOK.primary};font:inherit;font-size:13px;padding:0 10px;cursor:pointer;max-width:150px`
+    effortSelect.setAttribute(OWN_ATTR, '1')
+    effortSelect.setAttribute('data-mas-effort-config', effortKey)
+    const blank = document.createElement('option')
+    blank.value = ''
+    blank.textContent = '默认'
+    effortSelect.appendChild(blank)
+    for (const level of reasoning.efforts) {
+      const option = document.createElement('option')
+      option.value = level.id
+      option.textContent = level.name
+      effortSelect.appendChild(option)
+    }
+    const configured = draftOf<Array<{ key: string; effort: string }>>('modelEfforts', []).find((item) => item.key === effortKey)?.effort ?? ''
+    effortSelect.value = configured
+    effortSelect.addEventListener('change', () => {
+      const next = draftOf<Array<{ key: string; effort: string }>>('modelEfforts', []).filter((item) => item.key !== effortKey)
+      if (effortSelect.value !== '') next.push({ key: effortKey, effort: effortSelect.value })
+      stage('modelEfforts', next, `「${entry.name || entry.model}」推理等级 → ${effortSelect.value === '' ? '默认' : effortSelect.value}`)
+    })
+    controls.appendChild(effortSelect)
+  }
 
   // 连通性测试：真实发一次极小请求，回答「这个模型现在能不能调通」（与入组/展示状态正交）。
   const probe = document.createElement('button')
@@ -1766,6 +1797,7 @@ const FIELD_BLOCKS: Array<{ id: string; title: string; desc: string; keys: strin
 const QUIET_FIELDS = new Set([
   'customGroups', 'groupByKind',
   'disabledModels', 'disabledGroups', 'hiddenModels', 'hiddenGroups',
+  'modelEfforts',
 ])
 
 function policySection(): HTMLElement {
@@ -2242,23 +2274,6 @@ let slotSelectRef: ((provider: string, model: string, effortId?: string) => void
 /** 视口/缩放监听只挂一次，避免 apply/重渲染重复叠加。 */
 let slotListenersAttached = false
 
-/** 推理等级：composer 常驻按钮的开关、当前活跃等级（插件本地跟踪，不跨 reload、不反映宿主侧改动）、面板引用。 */
-let slotEffortOpen = false
-let slotEffort: string | undefined = undefined
-let slotEffortPanelRef: HTMLElement | null = null
-
-/** 推理等级小面板的开关：直接改 DOM，与模型下拉互不影响。 */
-function applyEffortOpen(): void {
-  const panel = slotEffortPanelRef as HTMLElement | null
-  if (panel === null) return
-  panel.style.display = slotEffortOpen ? 'flex' : 'none'
-}
-
-function closeEffortPanel(): void {
-  if (!slotEffortOpen) return
-  slotEffortOpen = false
-  applyEffortOpen()
-}
 
 /** 打开 / 关闭下拉：直接改 DOM，保证点了就有反应。 */
 function applySlotOpen(): void {
@@ -2829,6 +2844,24 @@ function metaChip(React: any, row: CatalogEntry): any {
   )
 }
 
+/**
+ * 只读推理等级标识：从 modelEfforts（键 'provider/model'）取该模型配置的等级，
+ * 仅当配置存在且该模型当前仍声明该等级时返回节点；否则返回 null（fail-closed，不猜测、不显示）。
+ */
+function effortBadgeNode(React: any, row: CatalogEntry): any {
+  const key = `${row.provider}/${row.model}`
+  const effort = view?.config?.modelEfforts?.find((item) => item.key === key)?.effort
+  if (effort === undefined) return null
+  const level = row.reasoning?.efforts.find((item) => item.id === effort)
+  if (level === undefined) return null
+  return pillNode(
+    React,
+    level.name,
+    `推理等级：${level.name}（按模型预配置；该模型当前仍声明该等级）`,
+    'meta',
+  )
+}
+
 /** 模型名里的计价后缀（`· x0.06`）单独拿出来当徽标，名字本身保持干净。 */
 function splitModelName(name: string): { base: string; price: string | null } {
   const hit = /^(.*?)\s*·\s*(x\s*[0-9]+(?:\.[0-9]+)?)$/.exec(name)
@@ -2934,8 +2967,6 @@ function registerModelSelectSlot(ctx: any): boolean {
     }
 
     const choose = (entry: CatalogEntry) => {
-      // 选模型不自动沿用旧等级（该方案未被拍板选中）；本地活跃等级回落宿主默认，避免显示与实际不符。
-      slotEffort = undefined
       if (slotSelectRef !== null) slotSelectRef(entry.provider, entry.model)
     }
 
@@ -3000,6 +3031,7 @@ function registerModelSelectSlot(ctx: any): boolean {
         currentLabel(current),
       ),
       ...(currentEntry === undefined ? [] : [metaChip(React, currentEntry)]),
+      ...(currentEntry === undefined ? [] : [effortBadgeNode(React, currentEntry)]),
       createElement('span', { style: { color: TOK.tertiary, fontSize: '11px' }, 'aria-hidden': 'true' }, '▾'),
     )
 
@@ -3065,6 +3097,8 @@ function registerModelSelectSlot(ctx: any): boolean {
               ),
             )
           }
+          const effortBadge = effortBadgeNode(React, row)
+          if (effortBadge !== null) pills.push(effortBadge)
           return createElement(
             'button',
             {
@@ -3283,114 +3317,7 @@ function registerModelSelectSlot(ctx: any): boolean {
       ),
     )
 
-    // 推理等级：composer 常驻按钮 + 独立小面板（不再塞进模型下拉，避免「选完模型还得重开下拉」）。
-    // 当前等级用插件本地 slotEffort 跟踪：不跨 reload、不反映宿主侧改动（宿主目录 current 不含 effort）。
-    const effortChoices: Array<{ id: string; label: string }> = []
-    if (current !== null && current !== undefined && currentEntry !== undefined && currentEntry.reasoning !== undefined) {
-      const meta = currentEntry.reasoning
-      if (meta.defaultEffort === undefined) effortChoices.push({ id: '', label: '默认' })
-      for (const level of meta.efforts) effortChoices.push({ id: level.id, label: level.name })
-    }
-    // 模型未披露任何推理等级时，常驻按钮与面板都不渲染，避免在工具栏白占一格（A 方案）。
-    const hasEfforts = effortChoices.length > 0
-    if (!hasEfforts) slotEffortOpen = false
-    const effortLabel =
-      slotEffort === undefined
-        ? '默认'
-        : (effortChoices.find((choice) => choice.id === slotEffort)?.label ?? slotEffort)
-    const effortButton = createElement(
-      'button',
-      {
-        type: 'button',
-        'data-mas-effort-trigger': '1',
-        'aria-haspopup': 'listbox',
-        'aria-expanded': slotEffortOpen,
-        title: `推理等级：${effortLabel}（当前模型披露的等级；本插件本地记录，不跨刷新）`,
-        'aria-label': `选择推理等级，当前 ${effortLabel}`,
-        disabled: locked || !available,
-        onClick: () => {
-          if (slotOpen) closeSlot(false)
-          slotEffortOpen = !slotEffortOpen
-          applyEffortOpen()
-          notify()
-        },
-        style: {
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '4px',
-          height: '28px',
-          padding: '0 8px',
-          border: 'none',
-          borderRadius: TOK.radius,
-          background: TOK.module,
-          color: TOK.secondary,
-          font: 'inherit',
-          fontSize: '11px',
-          cursor: locked || !available ? 'not-allowed' : 'pointer',
-          opacity: locked || !available ? 0.5 : 1,
-        },
-      },
-      createElement('span', { style: { color: TOK.tertiary, fontSize: '12px' }, 'aria-hidden': 'true' }, '⚡'),
-      createElement('span', { style: { color: TOK.primary, fontSize: '11px' } }, effortLabel),
-      createElement('span', { style: { color: TOK.tertiary, fontSize: '11px' }, 'aria-hidden': 'true' }, '▾'),
-    )
-    const effortRows = effortChoices.map((choice) =>
-      createElement(
-        'button',
-        {
-          type: 'button',
-          'data-mas-effort': choice.id,
-          title: choice.id === '' ? '使用宿主默认推理等级' : `推理等级：${choice.label}`,
-          onClick: () => {
-            if (current === null || current === undefined) return
-            slotEffort = choice.id === '' ? undefined : choice.id
-            slotEffortOpen = false
-            applyEffortOpen()
-            slotSelectRef?.(String(current.provider ?? ''), String(current.model ?? ''), slotEffort)
-          },
-          style: {
-            padding: '3px 8px',
-            borderRadius: TOK.radius,
-            border: `0.5px solid ${TOK.border}`,
-            background: TOK.module,
-            color: TOK.secondary,
-            fontSize: '11px',
-            cursor: 'pointer',
-          },
-        },
-        choice.label,
-      ),
-    )
-    const effortSection = createElement(
-      'div',
-      {
-        ref: (node: any) => {
-          slotEffortPanelRef = node ?? null
-          if (node !== null && node !== undefined) node.style.display = slotEffortOpen ? 'flex' : 'none'
-        },
-        'data-mas-effort-section': '1',
-        style: {
-          position: 'absolute',
-          top: '100%',
-          right: '0',
-          marginTop: '4px',
-          zIndex: 4,
-          display: slotEffortOpen ? 'flex' : 'none',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          gap: '6px',
-          padding: '6px 8px',
-          maxWidth: '260px',
-          borderRadius: TOK.radius,
-          border: `0.5px solid ${TOK.border}`,
-          background: TOK.layer,
-          boxShadow: '0 12px 28px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.08)',
-        },
-      },
-      ...(effortRows.length > 0
-        ? effortRows
-        : [createElement('span', { style: { fontSize: '11px', color: TOK.tertiary } }, '当前模型未提供推理等级。')]),
-    )
+
 
     const panel = createElement(
       'div',
@@ -3430,7 +3357,6 @@ function registerModelSelectSlot(ctx: any): boolean {
       { style: { position: 'relative', display: 'inline-flex', gap: '6px' } },
       button,
       panel,
-      ...(hasEfforts ? [effortButton, effortSection] : []),
     )
   }
 
@@ -3500,30 +3426,6 @@ function registerModelSelectSlot(ctx: any): boolean {
     true,
   )
 
-  // 推理等级小面板：点外面关、Esc 关（与模型下拉各自独立，互不影响）。
-  document.addEventListener(
-    'mousedown',
-    (event: any) => {
-      if (!slotEffortOpen) return
-      const panel = slotEffortPanelRef as any
-      if (panel !== null && panel !== undefined && typeof panel.contains === 'function' && panel.contains(event.target)) return
-      const trigger = document.querySelector('[data-mas-effort-trigger]')
-      if (trigger !== null && trigger.contains(event.target)) return
-      closeEffortPanel()
-    },
-    true,
-  )
-  document.addEventListener(
-    'keydown',
-    (event: any) => {
-      if (!slotEffortOpen) return
-      if (String(event.key ?? '') === 'Escape') {
-        event.preventDefault()
-        closeEffortPanel()
-      }
-    },
-    true,
-  )
 
   slots.inject(MODEL_SLOT, () =>
     slots.register(

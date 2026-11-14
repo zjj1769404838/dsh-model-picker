@@ -20,6 +20,12 @@ export const PLUGIN_VERSION = '0.1.0'
 export interface AutoSelectConfig {
   /** 用户默认模型；null = 沿用宿主 agentDefaultModel.currentSelection() */
   defaultModel: { provider: string; model: string; reasoningEffort?: string } | null
+  /**
+   * 按模型预配置的推理等级：[{ key: 'provider/model', effort: 等级 id }]。
+   * 选中该模型时（手动下拉选与自动切换重试）都按此附带；配置的 id 已不被该模型
+   * 声明时视为失效，回落宿主默认，不报错。
+   */
+  modelEfforts: Array<{ key: string; effort: string }>
   /** 同一模型最多重试几次（不含首次尝试）。默认 2 ⇒ 单模型最多 3 次尝试。 */
   maxRetries: number
   /** 每次重试 / 切换前的等待毫秒，避免瞬间打满上游。 */
@@ -149,6 +155,7 @@ export const DEFAULT_CONFIG: AutoSelectConfig = Object.freeze({
   probeIntervalMin: 0,
   // 组内优先、组内耗尽才跨组兜底：既不会一上来就在全量池子里乱跳，也不会因为组太小而卡死。
   switchScope: 'group-cross',
+  modelEfforts: [],
 }) as AutoSelectConfig
 
 function nonNegativeInt(value: unknown, fallback: number): number {
@@ -204,11 +211,29 @@ export function normalizeCustomGroups(value: unknown): CustomGroup[] {
     seen.add(id)
     out.push(normalized)
   }
-  return out
-}
+    return out
+  }
 
-/** 把 patch 里可能写错的字段收敛成合法配置；非法值一律回落到默认值。 */
-export function resolveConfig(raw: any): AutoSelectConfig {
+  /** 按模型预配置推理等级容错：只收 key/effort 均为非空字符串的项，id 去重，非法整条丢。 */
+  export function normalizeModelEfforts(value: unknown): Array<{ key: string; effort: string }> {
+    if (!Array.isArray(value)) return []
+    const out: Array<{ key: string; effort: string }> = []
+    const seen = new Set<string>()
+    for (const item of value) {
+      if (item === null || typeof item !== 'object') continue
+      const raw = item as any
+      if (typeof raw.key !== 'string' || typeof raw.effort !== 'string') continue
+      const key = raw.key.trim()
+      if (key.length === 0 || raw.effort.trim().length === 0) continue
+      if (seen.has(key)) continue
+      seen.add(key)
+      out.push({ key, effort: raw.effort.trim() })
+    }
+    return out
+  }
+
+  /** 把 patch 里可能写错的字段收敛成合法配置；非法值一律回落到默认值。 */
+  export function resolveConfig(raw: any): AutoSelectConfig {
   const input = raw !== null && typeof raw === 'object' ? raw : {}
   const dm = input.defaultModel
   const defaultModel =
@@ -246,6 +271,7 @@ export function resolveConfig(raw: any): AutoSelectConfig {
     groupMode: normalizeGroupMode(input.groupMode),
     probeIntervalMin: nonNegativeInt(input.probeIntervalMin, DEFAULT_CONFIG.probeIntervalMin),
     switchScope: input.switchScope === undefined ? DEFAULT_CONFIG.switchScope : normalizeSwitchScope(input.switchScope),
+    modelEfforts: normalizeModelEfforts(input.modelEfforts),
   }
 }
 

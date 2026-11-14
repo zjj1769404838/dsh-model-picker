@@ -147,6 +147,8 @@ const CONFIG = {
 
   probeIntervalMin: 0,
 
+  modelEfforts: [],
+
 }
 
 
@@ -179,7 +181,7 @@ const FIELDS = [
   { key: 'hiddenModels', type: 'models', label: '下拉展示：模型', hint: '勾选 = 出现在模型下拉' },
 
   { key: 'hiddenGroups', type: 'groups-list', label: '下拉展示：分组', hint: '整组隐藏' },
-
+  { key: 'modelEfforts', type: 'models', label: '推理等级：模型', hint: '按模型预配置推理等级' },
 ]
 
 
@@ -1466,7 +1468,7 @@ await test('配置表单只保留 13 项，精简项与只读汇总不再铺开'
 
   const text = await settingsText()
 
-  assert.equal(FIELDS.length, 13, '夹具配置项应当精简为 13 项')
+  assert.equal(FIELDS.length, 14, '夹具配置项应精简为 14 项（含 modelEfforts）')
 
   // 9 项会渲染成可见标签：7 个运行策略项（含分组方式、自动探测间隔）+ 分组卡的自定义分组 + 按类型分组。
   // 另外 4 个数组字段（disabledModels/disabledGroups/hiddenModels/hiddenGroups）是逐行开关
@@ -3048,80 +3050,112 @@ await test('折叠态 meta pill fail-closed：未披露上下文时只显示来�
   assert.ok(!meta.text.includes(' · '), `未披露上下文时文本不应含上下文拼接：${meta.text}`)
 })
 
-await test('常驻「推理等级」按钮：一键展开列 efforts 且点选落到 /select（带 reasoningEffort），无需打开模型下拉', async () => {
-  selectCalls.length = 0
+await test('设置页按模型预配置推理等级：选择写盘 modelEfforts（键 provider/model）', async () => {
+  posted.length = 0
   const withReasoning = ENTRIES.map((e) =>
     e.provider === 'alpha' && e.model === 'a-text-1'
       ? { ...e, reasoning: { efforts: [{ id: 'low', name: '低' }, { id: 'high', name: '高' }], defaultEffort: 'high' } }
       : e,
   )
   await boot(makeView({ entries: withReasoning, sessions: SESSION_1 }))
-  await page.evaluate(() => window.__renderModelSlot())
+  await page.evaluate(() => window.__renderSection())
   await page.waitForTimeout(150)
-  const preOpen = await page.evaluate(() => ({
-    hasTrigger: document.querySelector('[data-mas-effort-trigger]') !== null,
-    menuDisplay: document.querySelector('[data-mas-slot-menu]')?.style.display ?? null,
-    label: (document.querySelector('[data-mas-effort-trigger]')?.textContent ?? '').trim(),
-  }))
-  assert.equal(preOpen.hasTrigger, true, 'composer 应常驻「推理等级」按钮')
-  assert.notEqual(preOpen.menuDisplay, 'flex', '推理等级不依赖打开模型下拉')
-  assert.ok(!preOpen.label.includes('推理等级'), `常驻按钮应去掉「推理等级」四字静态标签：${preOpen.label}`)
-  assert.ok(preOpen.label.includes('⚡'), `常驻按钮应保留图标：${preOpen.label}`)
-  await page.evaluate(() => document.querySelector('[data-mas-effort-trigger]').click())
-  await page.waitForTimeout(200)
-  const section = await page.evaluate(() => {
-    const sec = document.querySelector('[data-mas-effort-section]')
-    if (sec === null) return null
-    const buttons = [...sec.querySelectorAll('[data-mas-effort]')]
-    return {
-      display: sec.style.display,
-      efforts: buttons.map((el) => el.getAttribute('data-mas-effort')),
-      noRow: buttons.every((el) => el.getAttribute('data-mas-slot-row') === null),
-    }
+
+  // 1) 披露 reasoning 的模型行出现「推理等级」下拉，选项 = 声明等级 + 默认
+  const initial = await page.evaluate(() => {
+    const row = [...document.querySelectorAll('[data-mas-model-row]')].find((n) => n.getAttribute('data-mas-model-row') === 'alpha\u0000a-text-1')
+    const select = row?.querySelector('[data-mas-effort-config]')
+    return select === null ? null : { value: select.value, options: [...select.options].map((o) => o.value) }
   })
-  assert.ok(section !== null, '点常驻按钮应展开「推理等级」小面板')
-  assert.equal(section.display, 'flex', '小面板展开时应可见')
-  assert.deepEqual(section.efforts, ['low', 'high'], `defaultEffort 已给时不加默认项，按声明列 efforts：${JSON.stringify(section.efforts)}`)
-  assert.equal(section.noRow, true, '等级按钮不得带 data-mas-slot-row（避免被 ↑↓/Enter 误选）')
+  assert.ok(initial !== null, '披露 reasoning 的模型行应出现推理等级下拉')
+  assert.deepEqual(initial.options, ['', 'low', 'high'], `推理等级下拉应列声明等级：${JSON.stringify(initial)}`)
+  assert.equal(initial.value, '', `未配置时应默认「默认」：${JSON.stringify(initial)}`)
+
+  // 2) 选「高」写盘 modelEfforts（键为 provider/model）
   await page.evaluate(() => {
-    const hit = [...document.querySelectorAll('[data-mas-effort]')].filter((el) => el.getAttribute('data-mas-effort') === 'high')[0]
-    hit.click()
+    const row = [...document.querySelectorAll('[data-mas-model-row]')].find((n) => n.getAttribute('data-mas-model-row') === 'alpha\u0000a-text-1')
+    const select = row.querySelector('[data-mas-effort-config]')
+    select.value = 'high'
+    select.dispatchEvent(new Event('change', { bubbles: true }))
   })
   await page.waitForTimeout(150)
-  const calls = selectCalls.slice()
-  assert.equal(calls.length, 1, `点推理等级应发一次 /select：${JSON.stringify(calls)}`)
-  assert.equal(calls[0].provider, 'alpha', '应带上当前模型 provider')
-  assert.equal(calls[0].model, 'a-text-1', '应带上当前模型 model')
-  assert.equal(calls[0].reasoningEffort, 'high', `应带上所选 reasoningEffort：${JSON.stringify(calls[0])}`)
-  const label = await page.evaluate(() => (document.querySelector('[data-mas-effort-trigger]')?.textContent ?? '').trim())
-  assert.ok(label.includes('高'), `选完应在常驻按钮显示当前等级：${label}`)
+  await page.evaluate(() => document.querySelector('[data-mas-save]')?.click())
+  await page.waitForTimeout(400)
+
+  const saved = posted.find((body) => body.modelEfforts !== undefined)
+  assert.ok(saved !== undefined, `保存应携带 modelEfforts：${JSON.stringify(posted)}`)
+  assert.deepEqual(saved.modelEfforts, [{ key: 'alpha/a-text-1', effort: 'high' }], `modelEfforts 应为按模型预配置：${JSON.stringify(saved.modelEfforts)}`)
+  assert.equal(saved.modelEfforts.length, 1, `只配置了一个模型时只写一条：${JSON.stringify(saved.modelEfforts)}`)
 })
 
-await test('推理等级按钮：无 reasoning 时隐藏不占工具栏；无 defaultEffort 时补「默认」项', async () => {
-  await boot(makeView({ sessions: SESSION_1 }))
-  await page.evaluate(() => window.__renderModelSlot())
-  await page.waitForTimeout(150)
-  const hidden = await page.evaluate(() => ({
-    hasTrigger: document.querySelector('[data-mas-effort-trigger]') !== null,
-    hasSection: document.querySelector('[data-mas-effort-section]') !== null,
-  }))
-  assert.equal(hidden.hasTrigger, false, '当前模型未披露 reasoning 时应隐藏常驻推理等级按钮')
-  assert.equal(hidden.hasSection, false, '当前模型未披露 reasoning 时不应挂载推理等级小面板')
-
+await test('推理等级只读标识：下拉与折叠态显示；未配置/失效不显示，且 composer 无等级按钮', async () => {
   const withReasoning = ENTRIES.map((e) =>
     e.provider === 'alpha' && e.model === 'a-text-1'
-      ? { ...e, reasoning: { efforts: [{ id: 'low', name: '低' }] } }
+      ? { ...e, reasoning: { efforts: [{ id: 'low', name: '低' }, { id: 'high', name: '高' }], defaultEffort: 'high' } }
       : e,
   )
+
+  // 1) 配置生效：折叠触发按钮与下拉行都显示只读标识
+  await boot(makeView({
+    entries: withReasoning,
+    sessions: SESSION_1,
+    config: { ...CONFIG, modelEfforts: [{ key: 'alpha/a-text-1', effort: 'high' }] },
+  }))
+  await page.evaluate(() => window.__renderModelSlot())
+  await page.waitForTimeout(200)
+  await page.evaluate(() => document.querySelector('[data-mas-slot-trigger]')?.click())
+  await page.waitForTimeout(200)
+  const shown = await page.evaluate(() => {
+    const trigger = document.querySelector('[data-mas-slot-trigger]')
+    const triggerTitles = [...trigger.querySelectorAll('span[title^="推理等级"]')].map((el) => (el.textContent ?? '').trim())
+    const rows = [...document.querySelectorAll('[data-mas-slot-row]')]
+    const rowTitles = rows
+      .filter((row) => row.getAttribute('data-mas-slot-row') === 'alpha/a-text-1')
+      .flatMap((row) => [...row.querySelectorAll('span[title^="推理等级"]')].map((el) => (el.textContent ?? '').trim()))
+    return { triggerTitles, rowTitles }
+  })
+  assert.deepEqual(shown.triggerTitles, ['高'], `折叠触发按钮应显示只读等级标识：${JSON.stringify(shown)}`)
+  assert.deepEqual(shown.rowTitles, ['高'], `下拉行应显示只读等级标识：${JSON.stringify(shown)}`)
+  const noEffortButton = await page.evaluate(() => document.querySelector('[data-mas-effort-trigger]') !== null)
+  assert.equal(noEffortButton, false, 'composer 不应再有常驻推理等级按钮')
+
+  // 2) 未配置：折叠态与下拉都不显示
   await boot(makeView({ entries: withReasoning, sessions: SESSION_1 }))
   await page.evaluate(() => window.__renderModelSlot())
-  await page.waitForTimeout(150)
-  await page.evaluate(() => document.querySelector('[data-mas-effort-trigger]').click())
   await page.waitForTimeout(200)
-  const withDefault = await page.evaluate(() =>
-    [...document.querySelectorAll('[data-mas-effort-section] [data-mas-effort]')].map((el) => el.getAttribute('data-mas-effort')),
+  await page.evaluate(() => document.querySelector('[data-mas-slot-trigger]')?.click())
+  await page.waitForTimeout(200)
+  const none = await page.evaluate(() => {
+    const trigger = document.querySelector('[data-mas-slot-trigger]')
+    const triggerCount = trigger.querySelectorAll('span[title^="推理等级"]').length
+    const rowCount = [...document.querySelectorAll('[data-mas-slot-row]')]
+      .filter((row) => row.getAttribute('data-mas-slot-row') === 'alpha/a-text-1')
+      .flatMap((row) => [...row.querySelectorAll('span[title^="推理等级"]')]).length
+    return { triggerCount, rowCount }
+  })
+  assert.equal(none.triggerCount, 0, `未配置时折叠按钮不应显示等级标识：${JSON.stringify(none)}`)
+  assert.equal(none.rowCount, 0, `未配置时下拉行不应显示等级标识：${JSON.stringify(none)}`)
+
+  // 3) 配置失效（模型不再声明该 id）：仍不显示（fail-closed）
+  const stale = ENTRIES.map((e) =>
+    e.provider === 'alpha' && e.model === 'a-text-1'
+      ? { ...e, reasoning: { efforts: [{ id: 'low', name: '低' }], defaultEffort: 'low' } }
+      : e,
   )
-  assert.deepEqual(withDefault, ['', 'low'], `无 defaultEffort 时首项应为「默认」：${JSON.stringify(withDefault)}`)
+  await boot(makeView({
+    entries: stale,
+    sessions: SESSION_1,
+    config: { ...CONFIG, modelEfforts: [{ key: 'alpha/a-text-1', effort: 'high' }] },
+  }))
+  await page.evaluate(() => window.__renderModelSlot())
+  await page.waitForTimeout(200)
+  await page.evaluate(() => document.querySelector('[data-mas-slot-trigger]')?.click())
+  await page.waitForTimeout(200)
+  const staleBadge = await page.evaluate(() => {
+    const trigger = document.querySelector('[data-mas-slot-trigger]')
+    return trigger.querySelectorAll('span[title^="推理等级"]').length
+  })
+  assert.equal(staleBadge, 0, '配置失效时不应显示等级标识（fail-closed）')
 })
 
 await browser.close()

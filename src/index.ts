@@ -130,6 +130,7 @@ export const Config = z.object({
   switchScope: z.string().default(DEFAULT_CONFIG.switchScope).volatile(),
   groupMode: z.string().default(DEFAULT_CONFIG.groupMode).volatile(),
   probeIntervalMin: z.natural().default(DEFAULT_CONFIG.probeIntervalMin).volatile(),
+  modelEfforts: z.array(z.object({ key: z.string(), effort: z.string() })).default([]).volatile(),
 })
 
 /**
@@ -900,18 +901,31 @@ function reasonText(selection: Selection): string {
  * 返回本次落地用的通道名（日志/响应里透传，客户端不读它）。
  */
 function commitSelection(agent: any, selection: Selection, source: string): string {
+  // 按模型预配置的推理等级：键 'provider/model'；仅当该模型当前目录仍声明该 id 时才采用，
+  // 配置失效时回落默认（不报错、不猜测）。
+  const configuredEffort = (() => {
+    const key = `${selection.provider}/${selection.model}`
+    const item = cfg.modelEfforts.find((entry) => entry.key === key)
+    if (item === undefined) return undefined
+    const modelEntry = catalog.entries.find((entry) => entry.key === selection.key)
+    return modelEntry?.reasoning?.efforts?.some((level: any) => level.id === item.effort) === true
+      ? item.effort
+      : undefined
+  })()
   const payload = {
     provider: selection.provider,
     model: selection.model,
-    // 手动选择带的推理等级优先；否则回落到「所选即默认模型且配置带 effort」的旧规则。
+    // 推理等级优先级：手动选择带的显式 effort > 按模型预配置 > 默认模型旧规则。
     ...(selection.reasoningEffort !== undefined
       ? { reasoningEffort: selection.reasoningEffort }
-      : cfg.defaultModel !== null &&
-        cfg.defaultModel.provider === selection.provider &&
-        cfg.defaultModel.model === selection.model &&
-        cfg.defaultModel.reasoningEffort !== undefined
-        ? { reasoningEffort: cfg.defaultModel.reasoningEffort }
-        : {}),
+      : configuredEffort !== undefined
+        ? { reasoningEffort: configuredEffort }
+        : cfg.defaultModel !== null &&
+          cfg.defaultModel.provider === selection.provider &&
+          cfg.defaultModel.model === selection.model &&
+          cfg.defaultModel.reasoningEffort !== undefined
+          ? { reasoningEffort: cfg.defaultModel.reasoningEffort }
+          : {}),
   }
   // 1) 宿主认可的入口：AgentModel.select()，与 dsh-api-session-controller 的 selectModel 一致
   try {
@@ -1346,6 +1360,7 @@ function catalogView(snapshot: CatalogSnapshot) {
       switchScope: cfg.switchScope,
       groupMode: cfg.groupMode,
       probeIntervalMin: cfg.probeIntervalMin,
+      modelEfforts: cfg.modelEfforts,
     },
   }
 }
@@ -1380,6 +1395,7 @@ const CONFIG_FIELDS = [
   { key: 'disabledGroups', type: 'groups-list', label: '自动选择：分组', hint: '整组关掉 = 该组所有模型都不参与自动选择' },
   { key: 'hiddenModels', type: 'models', label: '下拉展示：模型', hint: '勾选 = 出现在模型下拉；取消勾选写进 hiddenModels（只影响展示）' },
   { key: 'hiddenGroups', type: 'groups-list', label: '下拉展示：分组', hint: '整组隐藏 = 该组所有模型都不在模型下拉里出现' },
+  { key: 'modelEfforts', type: 'models', label: '推理等级：模型', hint: '按模型预配置推理等级；手动选与自动切换都按此附带' },
 ] as const
 
 /** 找到本插件在 profile 里的配置条目（用于把配置写回 cordis.patch.yml）。 */
@@ -1523,6 +1539,11 @@ function coercePatch(input: any): { next: Record<string, unknown>; changed: stri
     if (key === 'customGroups') {
       // 只收结构合法的规则；整条非法直接丢，不猜测用户意图
       if (Array.isArray(value)) assign(key, normalizeCustomGroups(value))
+      continue
+    }
+    if (key === 'modelEfforts') {
+      // 按模型预配置推理等级：只收结构合法的项（key/effort 均为非空字符串）；非法整条丢
+      if (Array.isArray(value)) assign(key, normalizeModelEfforts(value))
       continue
     }
   }
