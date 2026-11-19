@@ -13,7 +13,7 @@
  */
 
 export const PLUGIN_NAME = '@zjjlivingfree/dsh-model-picker'
-export const PLUGIN_VERSION = '0.1.0'
+export const PLUGIN_VERSION = '0.1.8'
 
 // ─────────────────────────────── 配置 ───────────────────────────────
 
@@ -30,6 +30,12 @@ export interface AutoSelectConfig {
   maxRetries: number
   /** 每次重试 / 切换前的等待毫秒，避免瞬间打满上游。 */
   retryDelayMs: number
+  /** 是否启用插件级「请求失败重试」（0.1.8：失败分类 + 可配阶梯）。 */
+  requestRetryEnabled?: boolean
+  /** 码表外瞬时错误，插件自行重试的最大次数（不含首发）。 */
+  requestRetryMax?: number
+  /** 插件自行重试的退避阶梯（毫秒），超出长度取末值；Retry-After 优先。 */
+  requestRetryBackoffMs?: number[]
   /** provider 优先顺序；未列出的按宿主 listProviders() 顺序排在后面。 */
   providerOrder: string[]
   /** 单模型优先顺序，写成 'provider/model'；未列出的排在后面。 */
@@ -142,6 +148,9 @@ export const DEFAULT_CONFIG: AutoSelectConfig = Object.freeze({
   catalogTtlMs: 60_000,
   occupancyRefreshMs: 5_000,
   switchOnCodes: [],
+  requestRetryEnabled: true,
+  requestRetryMax: 3,
+  requestRetryBackoffMs: [2000, 5000, 10000],
   crossClassFallback: false,
   enabled: true,
   disabledModels: [],
@@ -272,6 +281,9 @@ export function normalizeCustomGroups(value: unknown): CustomGroup[] {
     probeIntervalMin: nonNegativeInt(input.probeIntervalMin, DEFAULT_CONFIG.probeIntervalMin),
     switchScope: input.switchScope === undefined ? DEFAULT_CONFIG.switchScope : normalizeSwitchScope(input.switchScope),
     modelEfforts: normalizeModelEfforts(input.modelEfforts),
+    requestRetryEnabled: input.requestRetryEnabled === undefined ? DEFAULT_CONFIG.requestRetryEnabled : input.requestRetryEnabled !== false,
+    requestRetryMax: nonNegativeInt(input.requestRetryMax, DEFAULT_CONFIG.requestRetryMax!),
+    requestRetryBackoffMs: Array.isArray(input.requestRetryBackoffMs) ? input.requestRetryBackoffMs : DEFAULT_CONFIG.requestRetryBackoffMs,
   }
 }
 
@@ -954,6 +966,80 @@ export interface ErrorRequest {
   scopeGroups?: string[]
   /** 最近一次连通性探测判为不可用的模型键（与 SelectRequest 同形）。 */
   probeUnavailable?: string[]
+  /** 失败分类结果（可选，0.1.8）；缺省时按旧逻辑（未知码走 retry→switch）。 */
+  classification?: 'permanent' | 'transient' | 'unknown'
+  /** 宿主是否已接手该错误（可选，0.1.8）；true 时插件直接切不叠加重试。 */
+  hostOwns?: boolean
+  /** 剥壳后真实失败面的 retryAfterMs（可选，0.1.8）；优先于退避阶梯。 */
+  retryAfterMs?: number
+}
+
+/**
+ * 剥开失败链取真实失败面（0.1.8）：沿 `cause` 与 `errors[]` 递归至多 3 层，
+ * 逐位守卫，避免 AggregateError / 包装错误把 code 藏在里层时被当成 UNKNOWN。
+ */
+export function failureFaceOf(failure: unknown): any {
+  const seen = new Set<unknown>()
+  let cur: any = failure
+  for (let depth = 0; depth < 3 && cur !== null && typeof cur === 'object' && !seen.has(cur); depth += 1) {
+    seen.add(cur)
+    if (typeof cur.code === 'string' || typeof cur.status === 'number' || typeof cur.retryAfterMs === 'number') return cur
+    const cause = cur.cause
+    if (cause !== null && typeof cause === 'object') {
+      cur = cause
+      continue
+    }
+    const errors = cur.errors
+    if (Array.isArray(errors) && errors.length > 0 && errors[0] !== null && typeof errors[0] === 'object') {
+      cur = errors[0]
+      continue
+    }
+    break
+  }
+  return failure !== null && typeof failure === 'object' ? failure : {}
+}
+
+/** 从失败面取归一化字段。 */
+export function fieldsOf(face: any): { code: string; status: number | undefined; retryAfterMs: number | undefined; text: string } {
+  const code = typeof face?.code === 'string' ? face.code : ''
+  const status = typeof face?.status === 'number' ? face.status : undefined
+  const retryAfterMs = typeof face?.retryAfterMs === 'number' ? face.retryAfterMs : undefined
+  const text = [face?.message, face?.text, face?.name]
+    .filter((v: unknown) => typeof v === 'string')
+    .join(' ')
+    .toLowerCase()
+  return { code, status, retryAfterMs, text }
+}
+
+const PERMANENT_CODES_018 = new Set([
+  'CONTEXT_WINDOW_EXCEEDED', 'AUTH', 'INVALID_CREDENTIAL', 'MISSING_CREDENTIAL',
+  'INVALID_REQUEST', 'INVALID_ARGS', 'NO_ADAPTER', 'INVALID_MODEL_CONTEXT', 'INVALID_PREPARED_CALL',
+])
+const TRANSIENT_CODES_018 = new Set(['RATE_LIMIT', 'SERVER', 'TIMEOUT', 'TRANSPORT', 'EMPTY_RESPONSE'])
+
+/** 失败分类：永久 → 瞬时 → 未知保守判永久（未知码不重试，交回宿主）。 */
+export function classifyFailure(face: any): 'permanent' | 'transient' | 'unknown' {
+  const { code, status, text } = fieldsOf(face)
+  if (PERMANENT_CODES_018.has(code)) return 'permanent'
+  if (code === 'QUOTA' || code === 'QUOTA_EXCEEDED') {
+    if (status === 429 || text.includes('rate limit') || text.includes('too many requests') || text.includes('retry after')) return 'transient'
+    return 'permanent'
+  }
+  if (code === 'AUTH_ERROR' || code === 'UNAUTHORIZED' || status === 401 || status === 403 || status === 402) return 'permanent'
+  if (TRANSIENT_CODES_018.has(code)) return 'transient'
+  if (status === 408 || status === 425 || status === 429 || (typeof status === 'number' && status >= 500 && status < 600)) return 'transient'
+  return 'unknown'
+}
+
+/** 退避毫秒：Retry-After 优先，否则按阶梯取 attempt 位（超出取末值）。 */
+export function requestBackoffMs(attempt: number, retryAfterMs: number | undefined, cfg: AutoSelectConfig): number {
+  if (typeof retryAfterMs === 'number' && Number.isFinite(retryAfterMs) && retryAfterMs >= 0) return Math.floor(retryAfterMs)
+  const ladder = Array.isArray(cfg.requestRetryBackoffMs) && cfg.requestRetryBackoffMs.length > 0
+    ? cfg.requestRetryBackoffMs
+    : [2000, 5000, 10000]
+  const idx = Math.min(Math.max(0, attempt), ladder.length - 1)
+  const value = ladder[idx]
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? Math.floor(value) : 0
 }
 
 /**
@@ -989,15 +1075,30 @@ export function decideOnError(request: ErrorRequest): ErrorAction {
     }
   }
 
-  // 重试额度按「已消耗的重试次数」算：retriesUsed < maxRetries 才能再重试。
-  // maxRetries=2 ⇒ 单模型最多 3 次尝试（1 次首发 + 2 次重试）。
-  if (state.retriesUsed < cfg.maxRetries) {
+  // 【0.1.8 分类守卫】永久错误、或宿主已接手的瞬时错误 → 不重试，直接切模型（避免等待叠加）。
+  // requestRetryEnabled=false，或未传 classification（旧测试 / 旧调用）→ 走老逻辑全绿。
+  const newLogic = cfg.requestRetryEnabled !== false
+  const skipRetry = newLogic && (
+    request.classification === 'permanent' ||
+    request.classification === 'unknown' ||
+    (request.classification === 'transient' && request.hostOwns === true)
+  )
+  // 仅「宿主未接手的瞬时错误（码表外）」用可配次数 n 与退避阶梯重试后再切——
+  // 这是「重试 n 次再切」的落点；关闭开关 / 旧调用（classification 未传）仍走老逻辑。
+  const useNewBudget = newLogic && request.classification === 'transient' && request.hostOwns !== true
+  const retryBudget = useNewBudget ? (cfg.requestRetryMax ?? cfg.maxRetries) : cfg.maxRetries
+  const retryDelay = useNewBudget
+    ? requestBackoffMs(state.retriesUsed, request.retryAfterMs, cfg)
+    : cfg.retryDelayMs
+
+  // 重试额度按「已消耗的重试次数」算：retriesUsed < budget 才能再重试。
+  if (!skipRetry && state.retriesUsed < retryBudget) {
     const retriesUsed = state.retriesUsed + 1
     return {
       action: 'retry',
-      delayMs: cfg.retryDelayMs,
+      delayMs: retryDelay,
       reasonCode: 'retry',
-      reason: `同一模型重试 ${retriesUsed}/${cfg.maxRetries}（失败码 ${failureCode}）`,
+      reason: `同一模型重试 ${retriesUsed}/${retryBudget}（失败码 ${failureCode}，分类 ${request.classification ?? 'legacy'}）`,
       attempts: state.attempts + 1,
       retriesUsed,
     }

@@ -36,6 +36,10 @@ import {
   priceClassOf,
   normalizeGroupMode,
   GROUP_MODE_VALUES,
+  failureFaceOf,
+  fieldsOf,
+  classifyFailure,
+  requestBackoffMs,
 } from '../lib/core.js'
 import { apply as applyPlugin, __test as nodeSide } from '../lib/index.js'
 
@@ -1444,6 +1448,126 @@ await test('不展示：隐藏（hidden）的模型不进候选池、不做首�
   // 不展示但可见候选存在 ⇒ 选到可见候选
   const ok = selectModel(baseRequest({ catalog: catalogOf([hiddenA, visibleB]) }))
   assert.equal(ok.key, visibleB.key)
+})
+
+// ─────────────────────────── 0.1.8 失败分类 / 剥壳 / 退避 ───────────────────────────
+
+await test('0.1.8 剥壳：AggregateError 的 cause 里 code / retryAfterMs 能被取到', () => {
+  const inner = { code: 'RATE_LIMIT', message: 'slow down', retryAfterMs: 500 }
+  const agg = new AggregateError([inner], 'boom')
+  agg.cause = inner
+  const face = failureFaceOf(agg)
+  assert.equal(face.code, 'RATE_LIMIT')
+  assert.deepEqual(fieldsOf(face), { code: 'RATE_LIMIT', status: undefined, retryAfterMs: 500, text: 'slow down' })
+})
+
+await test('0.1.8 剥壳：无 cause 时返回自身，空失败返回空对象', () => {
+  assert.deepEqual(failureFaceOf({ code: 'SERVER' }), { code: 'SERVER' })
+  assert.deepEqual(failureFaceOf(undefined), {})
+})
+
+await test('0.1.8 分类：永久 / 瞬时 / 未知三档', () => {
+  assert.equal(classifyFailure({ code: 'NO_ADAPTER' }), 'permanent')
+  assert.equal(classifyFailure({ code: 'AUTH' }), 'permanent')
+  assert.equal(classifyFailure({ code: 'RATE_LIMIT' }), 'transient')
+  assert.equal(classifyFailure({ code: 'SERVER', status: 503 }), 'transient')
+  assert.equal(classifyFailure({ status: 429 }), 'transient')
+  assert.equal(classifyFailure({ code: 'WEIRD_NEW_CODE' }), 'unknown')
+})
+
+await test('0.1.8 退避：Retry-After 优先，否则阶梯按 attempt 位，超出取末值', () => {
+  assert.equal(requestBackoffMs(0, 500, CFG), 500)
+  assert.equal(requestBackoffMs(0, undefined, CFG), 2000)
+  assert.equal(requestBackoffMs(1, undefined, CFG), 5000)
+  assert.equal(requestBackoffMs(5, undefined, CFG), 10000)
+})
+
+await test('0.1.8 永久错误：classification=permanent 不重试，直接切模型', () => {
+  const action = decideOnError(errorRequest({ classification: 'permanent', failureCode: 'AUTH' }))
+  assert.equal(action.action, 'switch')
+})
+
+await test('0.1.8 未知错误：classification=unknown 保守直接切模型', () => {
+  const action = decideOnError(errorRequest({ classification: 'unknown' }))
+  assert.equal(action.action, 'switch')
+})
+
+await test('0.1.8 宿主已接手：transient + hostOwns 不叠加等待，直接切模型', () => {
+  const action = decideOnError(errorRequest({ classification: 'transient', hostOwns: true }))
+  assert.equal(action.action, 'switch')
+})
+
+await test('0.1.8 码表外瞬时：按 requestRetryMax 重试并用退避阶梯', () => {
+  const action = decideOnError(errorRequest({ classification: 'transient', hostOwns: false }))
+  assert.equal(action.action, 'retry')
+  assert.equal(action.delayMs, 2000)
+  assert.equal(action.retriesUsed, 1)
+})
+
+await test('0.1.8 重试预算用尽后切模型（requestRetryMax=2）', () => {
+  const cfg = resolveConfig({ maxRetries: 2, retryDelayMs: 0, requestRetryMax: 2 })
+  const state = newSessionState('s1', 'text', { ...TEXT_A, reasonCode: 'preferred', reason: 'x', orderIndex: 0, idle: true, owners: [] }, Date.now())
+  state.retriesUsed = 2
+  const action = decideOnError(errorRequest({ cfg, state, classification: 'transient', hostOwns: false }))
+  assert.equal(action.action, 'switch')
+})
+
+await test('0.1.8 开关关闭：requestRetryEnabled=false 走旧逻辑（不认 classification）', () => {
+  const cfg = resolveConfig({ maxRetries: 2, retryDelayMs: 0, requestRetryEnabled: false })
+  const action = decideOnError(errorRequest({ cfg, classification: 'permanent' }))
+  assert.equal(action.action, 'retry')
+})
+
+// P0 真修复的 handler 层证据：prepend 注册 + 先 await next() + 采纳下游 retry 不叠加。
+function fakeCtxWaterfall() {
+  const base = fakeCtxGrowing()
+  const registered = []
+  return {
+    ...base,
+    on: (name, fn, options) => { registered.push({ name, fn, options }) },
+    __registered: registered,
+  }
+}
+function errorHandlerOf(ctx) {
+  const reg = ctx.__registered.find((r) => r.name === 'agent/request-error')
+  assert.ok(reg !== undefined, '必须注册 agent/request-error listener')
+  return reg
+}
+
+await test('0.1.8 P0 地基：request-error listener 以 prepend 注册（抢在宿主 llm-retry 前）', () => {
+  const ctx = fakeCtxWaterfall()
+  nodeSide.reset()
+  applyPlugin(ctx, { enabled: true })
+  const reg = errorHandlerOf(ctx)
+  assert.equal(reg.options?.prepend, true, 'listener 必须 prepend，否则事件被宿主链截断收不到')
+})
+
+await test('0.1.8 P0 地基：下游返回 retry 时原样采纳，不叠加插件重试', async () => {
+  const ctx = fakeCtxWaterfall()
+  nodeSide.reset()
+  applyPlugin(ctx, { enabled: true })
+  await nodeSide.getCatalog(true)
+  const reg = errorHandlerOf(ctx)
+  const marker = { kind: 'retry', source: 'host-llm-retry' }
+  const result = await reg.fn(
+    { agent: ctx.__agents[0], turn: 1, step: 1, failure: { code: 'SERVER' }, retryPolicy: { mode: 'normal' }, signal: { aborted: false } },
+    async () => marker,
+  )
+  assert.equal(result, marker, '下游已 retry 必须原样采纳，禁止叠加插件自己的重试等待')
+})
+
+await test('0.1.8 P0 地基：下游耗尽（无结果）时插件自决重试', async () => {
+  const ctx = fakeCtxWaterfall()
+  nodeSide.reset()
+  applyPlugin(ctx, { requestRetryEnabled: false })
+  await nodeSide.getCatalog(true)
+  await nodeSide.applySelection(ctx.__agents[0], 'text', 'test', { allowPreferred: false })
+  const reg = errorHandlerOf(ctx)
+  const result = await reg.fn(
+    { agent: ctx.__agents[0], turn: 1, step: 1, failure: { code: 'UPSTREAM_500', message: 'boom' }, signal: { aborted: false } },
+    async () => undefined,
+  )
+  assert.deepEqual(result, { kind: 'retry' }, '下游耗尽后插件应接手自决重试')
 })
 
 

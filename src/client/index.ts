@@ -1784,7 +1784,7 @@ function groupsSection(): HTMLElement {
 const FIELD_BLOCKS: Array<{ id: string; title: string; desc: string; keys: string[] }> = [
   { id: 'basic', title: '默认模型与总开关', desc: '起手用哪个模型，以及插件是否接管选择', keys: ['enabled', 'defaultModel'] },
   { id: 'grouping', title: '分组与自动探测', desc: '分组方式：手工（自定义分组）或自动（按免费 / 积分 / 未知）；定时探测间隔 0 = 不自动', keys: ['groupMode', 'probeIntervalMin'] },
-  { id: 'retry', title: '失败重试', desc: '同一个模型报错时先重试；机会用完才换模型', keys: ['maxRetries'] },
+  { id: 'retry', title: '失败重试', desc: '同一个模型报错时先重试；机会用完才换模型。启用失败分类后：永久错误直接切、瞬时错误按可配阶梯重试，宿主负责的错误（限流/服务端等）不叠加等待', keys: ['maxRetries', 'requestRetryEnabled', 'requestRetryMax', 'requestRetryBackoffMs'] },
   {
     id: 'switch',
     title: '自动切换',

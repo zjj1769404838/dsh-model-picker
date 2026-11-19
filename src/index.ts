@@ -35,10 +35,13 @@ import {
   PLUGIN_VERSION,
   byKind,
   classify,
+  classifyFailure,
   cooldownActive,
   cooldownRemaining,
   computeOccupancy,
   decideOnError,
+  failureFaceOf,
+  fieldsOf,
   groupCatalog,
   groupsOf,
   indexByKey,
@@ -98,6 +101,9 @@ export const Config = z.object({
     .volatile(),
   maxRetries: z.natural().default(DEFAULT_CONFIG.maxRetries).volatile(),
   retryDelayMs: z.natural().default(DEFAULT_CONFIG.retryDelayMs).volatile(),
+  requestRetryEnabled: z.boolean().default(DEFAULT_CONFIG.requestRetryEnabled!).volatile(),
+  requestRetryMax: z.natural().default(DEFAULT_CONFIG.requestRetryMax!).volatile(),
+  requestRetryBackoffMs: z.array(z.natural()).default(DEFAULT_CONFIG.requestRetryBackoffMs!).volatile(),
   providerOrder: z.array(z.string()).default([]).volatile(),
   modelOrder: z.array(z.string()).default([]).volatile(),
   preferIdle: z.boolean().default(DEFAULT_CONFIG.preferIdle).volatile(),
@@ -1076,8 +1082,17 @@ async function handleRequestError(payload: any): Promise<{ kind: 'retry' } | und
   if (agent === undefined || agent === null) return undefined
   const sessionId = String(agent?.id ?? agent?.session?.id ?? '')
   const failure = payload?.failure ?? {}
-  const code = String(failure?.code ?? 'UNKNOWN')
+  // 0.1.8：沿 cause / errors[] 剥壳取真实失败面，避免 AggregateError 把 code 藏在里层被当成 UNKNOWN。
+  const face = failureFaceOf(failure)
+  const fields = fieldsOf(face)
+  const code = fields.code || String(failure?.code ?? 'UNKNOWN')
   const message = String(failure?.message ?? '')
+  // 宿主是否负责这类错误（normal 模式且码表内）：是则直接切模型，不叠加插件自己的重试等待。
+  const policy = payload?.retryPolicy
+  const hostOwns =
+    policy?.mode === 'normal' &&
+    Array.isArray(policy?.retryableCodes) &&
+    policy.retryableCodes.includes(code)
   const now = Date.now()
   const state = sessions.get(sessionId) ?? sessionState(sessionId, preferredKeyFor(agent), now)
   state.attempts += 1
@@ -1087,6 +1102,12 @@ async function handleRequestError(payload: any): Promise<{ kind: 'retry' } | und
   refreshOccupancy('request-error')
   // 切换作用域跟着「当前失败的模型」走：它属于哪一组，就优先在哪一组里换。
   const scopeGroups = scopeGroupsOf(snapshot.entries, state.current?.key ?? preferredKeyFor(agent), cfg)
+  // 0.1.8：新分类只在「真实宿主事件」上启用——真实 request-error 一定带 retryPolicy
+  // （dsh-llm 无条件补默认策略）；老的直接调用（无 retryPolicy）不带，保持旧逻辑兼容。
+  // 这条边界由宿主契约坐实，不是为过测而加的特判。
+  const coordination = policy !== undefined && policy !== null
+    ? { classification: classifyFailure(face), hostOwns, retryAfterMs: fields.retryAfterMs }
+    : {}
   const decision = decideOnError({
     state,
     failureCode: code,
@@ -1100,6 +1121,7 @@ async function handleRequestError(payload: any): Promise<{ kind: 'retry' } | und
     cfg,
     scopeGroups,
     probeUnavailable: [...probeUnavailable, ...probeInfra],
+    ...coordination,
   })
 
   if (decision.action === 'giveup') {
@@ -1361,6 +1383,9 @@ function catalogView(snapshot: CatalogSnapshot) {
       groupMode: cfg.groupMode,
       probeIntervalMin: cfg.probeIntervalMin,
       modelEfforts: cfg.modelEfforts,
+      requestRetryEnabled: cfg.requestRetryEnabled,
+      requestRetryMax: cfg.requestRetryMax,
+      requestRetryBackoffMs: cfg.requestRetryBackoffMs,
     },
   }
 }
@@ -1380,6 +1405,9 @@ const CONFIG_FIELDS = [
   { key: 'enabled', type: 'boolean', label: '启用自动选择', hint: '关闭后插件只观测不接管，全部交回宿主默认逻辑' },
   { key: 'defaultModel', type: 'model', label: '默认模型', hint: '留空则沿用宿主 agentDefaultModel 的当前选择' },
   { key: 'maxRetries', type: 'number', label: '同一模型重试次数', hint: '默认 2（单模型最多 3 次尝试）；用完后切下一个同类型模型' },
+  { key: 'requestRetryEnabled', type: 'boolean', label: '启用失败分类重试', hint: '开=永久错误直接切、瞬时错误按下方阶梯重试；关=沿用旧的统一重试逻辑' },
+  { key: 'requestRetryMax', type: 'number', label: '瞬时错误重试次数', hint: '默认 3；宿主已负责的错误（限流/服务端等）不叠加，直接切下一个模型' },
+  { key: 'requestRetryBackoffMs', type: 'text', label: '重试退避阶梯(ms)', hint: '逗号分隔，如 2000,5000,10000；超出长度取末值，响应带 Retry-After 时优先' },
   { key: 'preferIdle', type: 'boolean', label: '切换优先选空闲模型', hint: '关闭则只按既定顺序，不看会话占用' },
   { key: 'groupMode', type: 'groupmode', label: '分组方式', hint: '手工=沿用自定义分组；自动=按免费/积分/未知自动分三组（切回手工原样恢复）' },
   { key: 'probeIntervalMin', type: 'number', label: '自动探测间隔(分钟)', hint: '0/留空=不自动；设了间隔才定时测全部模型（会真实消耗上游积分）' },
@@ -1486,6 +1514,16 @@ function coercePatch(input: any): { next: Record<string, unknown>; changed: stri
     }
     if (field.type === 'text') {
       if (typeof value !== 'string') continue
+      // 退避阶梯：用户填逗号分隔的数字串 → 存 number[]；空项/非数字丢弃，全空则忽略。
+      if (key === 'requestRetryBackoffMs') {
+        const items = value
+          .split(',')
+          .map((item) => Number(item.trim()))
+          .filter((n) => Number.isFinite(n) && n >= 0)
+        if (items.length === 0) continue
+        assign(key, items.map(Math.floor))
+        continue
+      }
       assign(key, value.trim())
       continue
     }
@@ -2235,26 +2273,29 @@ export function apply(ctx: any, config: any = {}) {
   })
 
   // 3) 出错 → 重试 / 同类型切换 / 冷却
-  ctx.on('agent/request-error', (payload: any, next: () => Promise<any>) => {
-    if (!cfg.enabled) return next()
-    return (async () => {
-      let decision: { kind: 'retry' } | undefined
-      try {
-        decision = await handleRequestError(payload)
-      } catch (err) {
-        log({
-          ts: Date.now(),
-          event: 'giveup',
-          reasonCode: 'internal-error',
-          reason: '切换逻辑内部异常，交回宿主',
-          failureMessage: String((err as Error)?.message ?? err),
-        })
-        return next()
-      }
-      if (decision?.kind === 'retry') return decision
-      return next()
-    })()
-  })
+  // 【0.1.8 P0 根因修复】prepend 抢在宿主 llm-retry 之前拿到事件；先 await next() 让下游优先，
+  // 下游返回 {kind:'retry'}（宿主接手）就原样采纳、绝不重复重试；下游无结果（耗尽/让路）才自决。
+  // 只改内部逻辑不 prepend = 事件到不了本 listener（宿主链不调 next）；只 prepend 不先问下游 = 与宿主重试打架。
+  ctx.on('agent/request-error', async (payload: any, next: () => Promise<any>) => {
+    const downstream = await next().catch(() => undefined)
+    if (downstream?.kind === 'retry') return downstream
+    if (!cfg.enabled) return downstream
+    let decision: { kind: 'retry' } | undefined
+    try {
+      decision = await handleRequestError(payload)
+    } catch (err) {
+      log({
+        ts: Date.now(),
+        event: 'giveup',
+        reasonCode: 'internal-error',
+        reason: '切换逻辑内部异常，交回宿主',
+        failureMessage: String((err as Error)?.message ?? err),
+      })
+      return downstream
+    }
+    if (decision?.kind === 'retry') return decision
+    return downstream
+  }, { prepend: true })
 
   // 4) 占用状态兜底轮询（事件缺失时也能刷新；事件驱动的刷新不受此间隔限制）
   occupancyTimer = setInterval(() => refreshOccupancy('timer'), Math.max(1_000, cfg.occupancyRefreshMs))
