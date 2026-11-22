@@ -43,7 +43,7 @@
 - [x] 执行自评报告 docs/review/0.1.9-执行自评-20261123.md（含三次真实红灯归因：apiUrl 误删 / DOM setup 顺序错 / 未 rebuild+回合完成未预置）
 - [x] 独立蓝军复核：docs/review/0.1.9-蓝军复核-20261123.md（114 行）→ **无 P0，P1 三项**：P1-1 自评误标三个既有纯函数为「新增」（已更正，依据 git show HEAD 对照）｜P1-2 U5 旧区块形态与设计 §10.3 分歧 → **用户 2026-11-23 拍板：以实现为准，改设计文档追认**（§10.3/U5/§5.3 已改写为「保留完整视图 + 增加侧边栏入口」并附追认记录；实现代码零改动，门禁无需重跑）｜P1-3 宿主 agent/error + session/event 两条新事件链与 uiWorkspace/workspaceRegistry/attachSession/selectPanel 未真机验证（风险形态=「开启后不触发」而非误动作，默认关闭+fail-closed 严重度受控）
 - [~] 请示授权后：改 profile 禁用 rescue/escalation（**未授权，未执行**）+ npm publish 0.1.9（**未授权，未执行**）
-- [x] commit + push main（用户 2026-11-23 当次授权）
+- [x] commit + push main（用户 2026-11-23 当次授权）→ 提交 **edd96e2**（16 文件 +3778/-161），推送 **8319890..edd96e2 main -> main**（fast-forward，含此前未推送的 0.1.8 提交 167a671）；远端独立核验 `ls-remote` = edd96e2a7df1541b341c593855cb598df9b085d4，raw.githubusercontent 抽验 package.json version=0.1.9 / src/core.ts PLUGIN_VERSION=0.1.9；工作区 clean
 
 ## 进度记录
 - [2026-11-22] 加载 base-memory v2.3.2 + reference.md 全文；规模核对=中型起步。
@@ -65,10 +65,11 @@
 - [2026-11-23] 发布前置只读核验：npm whoami=zjjlivingfree；远端 latest=0.1.7、**0.1.9 未占用**（npm view 404）；npm pack --dry-run exit 0（6 files、120.7kB、shasum ee25b7e2…）。**未 commit / 未 push / 未 publish / 未改 profile**。
 - [2026-11-23] **独立蓝军复核回收**（docs/review/0.1.9-蓝军复核-20261123.md，114 行）：总体判断=与批准设计高度一致、门禁三绿、**无 P0**、可进入发布流程；P1 三项：①自评误标 failureFaceOf/classifyFailure/requestBackoffMs 为「新增」→ 已更正（git show HEAD 坐实为 0.1.8 既有，仅行号下移 49；真正新增只有 decideResume/decideEscalate）②U5 旧区块形态与设计 §10.3 分歧 → 待用户拍板改实现 or 改设计文档，未自行改代码 ③宿主两条新事件链 + 四个服务未真机验证 → 如实标「未验证」，风险形态=开启后不触发而非误动作。蓝军独立复核的门禁与静态结论与自评一致（互为佐证）。
 - [2026-11-23] PLAN.md 同步完成（任务清单过期条目全部改正）。
+- [2026-11-23] **push 网络处置（可复用）**：本环境 `github.com:443` 直连被阻断（DNS 20.205.243.166 解析正常、TCP 443 超时；`api.github.com` 直连却通），系统代理在 `HKCU\...\Internet Settings` = `http://127.0.0.1:9981`（WinHTTP 为直连、环境无 http_proxy）。**git 面板的 `git push` 不接受 `-c` 参数**（报 unknown switch `c`），且 git_write 走沙箱内网络无法直连；解法 = 先 `git config --local http.proxy http://127.0.0.1:9981` → Git 面板 push → **推送后立即 `git config --local --unset http.proxy`**（不污染持久配置）。核验同样需经代理：`git -c http.proxy=http://127.0.0.1:9981 ls-remote origin refs/heads/main`。
 - [2026-11-23] **用户拍板回收**（ask_user_question）：①U5 → 选「保留完整视图，改设计文档追认（推荐）」→ 已改写 docs/design-0.1.9-双能力.md §10.3（新增口径追认记录，含初稿口径、m09926 拍板冲突、用户拍板结论、已知代价=双入口形态冗余但共用同一组件与 draft 状态源故无分叉）+ U5 行 + §5.3 旧区块行；自评报告第六节第 1 条与第十节 P1-2 同步更新为「已处置」。②发布授权 → **只授权「commit + push main」**；**npm publish 0.1.9 未授权**（不执行）、**改 profile 禁用 rescue/escalation 未授权**（不执行，profile 保持原状：两个插件仍启用，双驱动风险仍在，保留在残留风险披露中）。
 
 ## 下一步行动
-1. ✅ 已完成：commit + push main（用户 2026-11-23 授权）。
+1. ✅ 已完成：commit + push main（用户 2026-11-23 授权）→ edd96e2 已上远端 main。
 2. npm publish 0.1.9 **未授权** → 待用户当次独立授权后再执行（name+version 永久占用，禁重发）。
 3. 改 profile 禁用 rescue/escalation **未授权** → 待用户当次授权（环境级操作；当前两插件仍启用，双驱动风险保留披露）。
 4. 用户重载插件后做真机验证两条路径（瞬时错误→续作投递；占用过阈→升级建会话+跳转）。
