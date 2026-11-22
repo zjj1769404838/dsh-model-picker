@@ -149,11 +149,31 @@ const CONFIG = {
 
   modelEfforts: [],
 
+  autoResumeEnabled: false,
+
+  autoResumeConsecutiveMax: 3,
+
+  autoResumeSessionMax: 10,
+
+  autoResumeContinuePrompt: '继续未完成的任务',
+
+  escalateEnabled: false,
+
+  escalateThresholdRatio: 0.85,
+
+  escalateMaxChainDepth: 3,
+
+  escalateContinuePrompt: '继续未完成的任务',
+
+  escalateArchiveParent: true,
+
+  escalateRenameChild: true,
+
 }
 
 
 
-// 与服务端 CONFIG_FIELDS 对齐：只暴露用户真正会改的 13 项（4 个数组字段供逐行开关写盘）。
+// 与服务端 CONFIG_FIELDS 对齐：暴露用户真正会改的 24 项（0.1.7 的 14 项 + 0.1.9 双能力 10 项）。
 const FIELDS = [
 
   { key: 'enabled', type: 'boolean', label: '启用自动选择', hint: '关闭后只记录日志，不改选择' },
@@ -182,6 +202,26 @@ const FIELDS = [
 
   { key: 'hiddenGroups', type: 'groups-list', label: '下拉展示：分组', hint: '整组隐藏' },
   { key: 'modelEfforts', type: 'models', label: '推理等级：模型', hint: '按模型预配置推理等级' },
+
+  { key: 'autoResumeEnabled', type: 'boolean', label: '错误自动继续', hint: '回合因瞬时错误失败后自动发起新一轮继续未完成的任务（默认关）' },
+
+  { key: 'autoResumeConsecutiveMax', type: 'number', label: '连续续作上限', hint: '同类错误连续失败达到该次数后不再自动继续（默认 3）' },
+
+  { key: 'autoResumeSessionMax', type: 'number', label: '整会话续作上限', hint: '一个会话内累计自动继续次数的上限（默认 10）' },
+
+  { key: 'autoResumeContinuePrompt', type: 'text', label: '续作指令', hint: '自动继续时附加给模型的任务说明（接在固定模板之后）' },
+
+  { key: 'escalateEnabled', type: 'boolean', label: '上下文升级会话', hint: '上下文占用超过阈值时新建会话继续任务并归档旧会话（默认关）' },
+
+  { key: 'escalateThresholdRatio', type: 'number', label: '升级阈值', hint: '上下文占用比例达到该值时升级（默认 0.85）' },
+
+  { key: 'escalateMaxChainDepth', type: 'number', label: '升级链层数上限', hint: '升级链最多多少层（默认 3）' },
+
+  { key: 'escalateContinuePrompt', type: 'text', label: '交接续作指令', hint: '新会话收到的交接说明（接在标准交接头之后）' },
+
+  { key: 'escalateArchiveParent', type: 'boolean', label: '升级后归档旧会话', hint: '升级成功后把旧会话归档（宿主原生可逆，默认开）' },
+
+  { key: 'escalateRenameChild', type: 'boolean', label: '给新会话命名', hint: '按「父会话-日期-时间」给新会话命名（默认开）' },
 ]
 
 
@@ -784,6 +824,18 @@ const server = http.createServer(async (req, res) => {
 
   }
 
+  if (url.pathname === '/dsh-model-auto-select/pending-navigation') {
+
+    const targets = Array.isArray(server.__pendingNavigation) ? server.__pendingNavigation.splice(0, server.__pendingNavigation.length) : []
+
+    res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' })
+
+    res.end(JSON.stringify({ targets }))
+
+    return
+
+  }
+
   res.writeHead(404)
 
   res.end('nope')
@@ -844,7 +896,7 @@ page.on('pageerror', (err) => {
 
 /** 起页：注入 client.js、跑 apply()，并把 settings.section 的注册者存起来。 */
 
-async function boot(view = VIEW) {
+async function boot(view = VIEW, opts = {}) {
 
   posted.length = 0
 
@@ -862,6 +914,8 @@ async function boot(view = VIEW) {
 
   server.__occupancy = null
 
+  server.__pendingNavigation = []
+
   pageErrors.length = 0
 
   server.__view = view
@@ -870,7 +924,7 @@ async function boot(view = VIEW) {
 
   await page.waitForFunction(() => window.__mas !== undefined, undefined, { timeout: 5000 })
 
-  await page.evaluate(() => {
+  await page.evaluate((options) => {
 
     const slots = {
 
@@ -938,6 +992,29 @@ async function boot(view = VIEW) {
 
     var sessions = { subagentAddress: function () { return undefined } }
 
+    // 宿主 layout 服务（可选）：有它才能切侧边栏面板；没有就静默降级。
+
+    window.__selectPanelCalls = []
+
+    window.__openSessionCalls = []
+
+    var layout = undefined
+
+    if (options !== undefined && options !== null && options.withLayout === true) {
+
+      layout = { selectPanel: function (id) { window.__selectPanelCalls.push(id) } }
+
+    }
+
+    // 宿主 uiWorkspace 服务（可选）：有它才能验证「取到待跳转目标后跳过去」。
+    var uiWorkspace = undefined
+
+    if (options !== undefined && options !== null && options.withUiWorkspace === true) {
+
+      uiWorkspace = { openSession: function (id) { window.__openSessionCalls.push(id) } }
+
+    }
+
     var ctx = {
 
       slots: slots,
@@ -948,6 +1025,10 @@ async function boot(view = VIEW) {
 
         if (name === 'sessions') return sessions
 
+        if (name === 'layout') return layout
+
+        if (name === 'uiWorkspace') return uiWorkspace
+
         return undefined
 
       },
@@ -956,7 +1037,7 @@ async function boot(view = VIEW) {
 
     window.__mas.apply(ctx)
 
-  })
+  }, opts)
 
   await page.waitForTimeout(400)
 
@@ -1462,13 +1543,13 @@ await test('设置页里能改自动选择配置（重试次数）', async () =>
   assert.equal(hit.maxRetries, 5)
 })
 
-await test('配置表单只保留 13 项，精简项与只读汇总不再铺开', async () => {
+await test('配置表单只保留 24 项，精简项与只读汇总不再铺开', async () => {
 
   // 自定义分组这一项是多控件区块（不是单行 label），所以按正文包含判断，而不是只扫 label 行。
 
   const text = await settingsText()
 
-  assert.equal(FIELDS.length, 14, '夹具配置项应精简为 14 项（含 modelEfforts）')
+  assert.equal(FIELDS.length, 24, '夹具配置项应为 24 项（0.1.7 的 14 项 + 0.1.9 双能力 10 项）')
 
   // 9 项会渲染成可见标签：7 个运行策略项（含分组方式、自动探测间隔）+ 分组卡的自定义分组 + 按类型分组。
   // 另外 4 个数组字段（disabledModels/disabledGroups/hiddenModels/hiddenGroups）是逐行开关
@@ -3156,6 +3237,271 @@ await test('推理等级只读标识：下拉与折叠态显示；未配置/失�
     return trigger.querySelectorAll('span[title^="推理等级"]').length
   })
   assert.equal(staleBadge, 0, '配置失效时不应显示等级标识（fail-closed）')
+})
+
+await test('0.1.9 设置页：三个页签（模型 / 策略 / 双能力），默认「模型」，切换只改可见性', async () => {
+
+  await boot()
+
+  await page.evaluate(() => window.__renderSection())
+
+  await page.waitForTimeout(200)
+
+  const before = await page.evaluate(() => {
+
+    const tabs = [...document.querySelectorAll('[data-mas-tab]')].map((el) => ({
+
+      id: el.getAttribute('data-mas-tab'),
+
+      selected: el.getAttribute('aria-selected'),
+
+      role: el.getAttribute('role'),
+
+    }))
+
+    const panels = [...document.querySelectorAll('[data-mas-tab-panel]')].map((el) => ({
+
+      id: el.getAttribute('data-mas-tab-panel'),
+
+      display: el.style.display,
+
+    }))
+
+    return { tabs, panels }
+
+  })
+
+  assert.equal(before.tabs.length, 3, `应有 3 个页签：${JSON.stringify(before)}`)
+
+  assert.deepEqual(before.tabs.map((t) => t.id), ['models', 'policy', 'dual'], `页签顺序应为 模型/策略/双能力：${JSON.stringify(before)}`)
+
+  assert.equal(before.tabs[0].selected, 'true', '默认应选中「模型」页签')
+
+  assert.equal(before.tabs[0].role, 'tab', '页签应带 role=tab')
+
+  assert.equal(before.panels.length, 3, `三份面板应同时常驻 DOM：${JSON.stringify(before)}`)
+
+  assert.equal(before.panels.find((p) => p.id === 'models').display, 'flex', '默认显示模型面板')
+
+  assert.equal(before.panels.find((p) => p.id === 'policy').display, 'none', '策略面板默认隐藏')
+
+  await page.evaluate(() => document.querySelector('[data-mas-tab="policy"]')?.click())
+
+  await page.waitForTimeout(250)
+
+  const after = await page.evaluate(() => {
+
+    const panels = [...document.querySelectorAll('[data-mas-tab-panel]')].map((el) => ({
+
+      id: el.getAttribute('data-mas-tab-panel'),
+
+      display: el.style.display,
+
+    }))
+
+    const selected = [...document.querySelectorAll('[data-mas-tab]')]
+
+      .filter((el) => el.getAttribute('aria-selected') === 'true')
+
+      .map((el) => el.getAttribute('data-mas-tab'))
+
+    return { panels, selected }
+
+  })
+
+  assert.equal(after.panels.length, 3, '切页签后三份面板仍常驻 DOM（只改可见性）')
+
+  assert.equal(after.panels.find((p) => p.id === 'policy').display, 'flex', '切到策略后面板应显示')
+
+  assert.equal(after.panels.find((p) => p.id === 'models').display, 'none', '切到策略后模型面板应隐藏')
+
+  assert.deepEqual(after.selected, ['policy'], '切页签后 aria-selected 应唯一落在策略页签')
+
+})
+
+await test('0.1.9 设置页：模型是卡片（data-mas-model-card），且仍带模型行与入组下拉', async () => {
+
+  await boot()
+
+  await page.evaluate(() => window.__renderSection())
+
+  await page.waitForTimeout(200)
+
+  const info = await page.evaluate(() => {
+
+    const rows = [...document.querySelectorAll('[data-mas-model-row]')]
+
+    return {
+
+      rows: rows.length,
+
+      cards: rows.filter((el) => el.getAttribute('data-mas-model-card') === '1').length,
+
+      withAssign: rows.filter((el) => el.querySelector('[data-mas-assign]') !== null).length,
+
+    }
+
+  })
+
+  assert.equal(info.rows, ENTRIES.length, `模型行数应为 ${ENTRIES.length}：${JSON.stringify(info)}`)
+
+  assert.equal(info.cards, ENTRIES.length, `每个模型都应是卡片：${JSON.stringify(info)}`)
+
+  assert.equal(info.withAssign, ENTRIES.length, `每个模型卡片仍应带入组下拉：${JSON.stringify(info)}`)
+
+})
+
+await test('0.1.9 设置页：双能力页签渲染续作与升级字段，升级阈值保留小数', async () => {
+
+  await boot()
+
+  await page.evaluate(() => window.__renderSection())
+
+  await page.waitForTimeout(200)
+
+  const info = await page.evaluate(() => {
+
+    const dual = document.querySelector('[data-mas-section="dual"]')
+
+    const fieldKeys = [...document.querySelectorAll('[data-mas-section="dual"] [data-mas-field]')]
+
+      .map((el) => el.getAttribute('data-mas-field'))
+
+    const ratio = document.querySelector('[data-mas-field="escalateThresholdRatio"]')
+
+    return {
+
+      hasDual: dual !== null,
+
+      fieldKeys,
+
+      ratioTag: ratio === null ? null : ratio.tagName,
+
+      ratioType: ratio === null ? null : ratio.type,
+
+      ratioStep: ratio === null ? null : ratio.step,
+
+      ratioValue: ratio === null ? null : ratio.value,
+
+    }
+
+  })
+
+  assert.equal(info.hasDual, true, '缺少双能力区块')
+
+  assert.ok(info.fieldKeys.includes('autoResumeEnabled'), `双能力区缺少「错误自动继续」开关：${JSON.stringify(info)}`)
+
+  assert.ok(info.fieldKeys.includes('escalateEnabled'), `双能力区缺少「上下文升级会话」开关：${JSON.stringify(info)}`)
+
+  assert.equal(info.ratioTag, 'INPUT', '升级阈值应是数字输入')
+
+  assert.equal(info.ratioType, 'number', '升级阈值应是 number')
+
+  assert.equal(info.ratioStep, '0.01', '升级阈值步长应为 0.01')
+
+  assert.equal(info.ratioValue, '0.85', '升级阈值默认值应是 0.85（不能被取整成 0）')
+
+})
+
+await test('0.1.9 侧边栏面板：注册 main(keyed) + sidebar.panellist(list)，齿轮切面板不再另开宿主设置页', async () => {
+
+  await boot(makeView(), { withLayout: true })
+
+  const reg = await page.evaluate(() => window.__registered.map((r) => ({
+
+    name: r.options.name,
+
+    key: r.options.key,
+
+    id: r.options.id,
+
+    order: r.options.order,
+
+  })))
+
+  const main = reg.find((r) => r.name === 'main')
+
+  const panel = reg.find((r) => r.name === 'sidebar.panellist')
+
+  assert.ok(main !== undefined, `未注册 main 面板：${JSON.stringify(reg)}`)
+
+  assert.equal(main.key, 'model-picker', 'main 槽是 keyed，注册项只带 key')
+
+  assert.ok(panel !== undefined, `未注册侧边栏图标：${JSON.stringify(reg)}`)
+
+  assert.equal(panel.id, 'model-picker', '侧边栏图标 id 必须与 main 的 key 相同')
+
+  assert.equal(typeof panel.order, 'number', '侧边栏图标应有排序值')
+
+  await clickSettingsIcon()
+
+  const state = await page.evaluate(() => ({
+
+    calls: window.__selectPanelCalls ?? [],
+
+    hostPanel: document.querySelector('[data-shortcut-modal="settings"]') !== null,
+
+  }))
+
+  assert.deepEqual(state.calls, ['model-picker'], `齿轮应切到侧边栏面板：${JSON.stringify(state)}`)
+
+  assert.equal(state.hostPanel, false, '宿主有 layout 服务时齿轮不应再开宿主设置面板')
+
+})
+
+await test('0.1.9 侧边栏面板：宿主没有 layout 服务时静默降级，不注册图标', async () => {
+
+  await boot()
+
+  const reg = await page.evaluate(() => window.__registered.map((r) => ({
+
+    name: r.options.name,
+
+    key: r.options.key,
+
+    id: r.options.id,
+
+  })))
+
+  assert.equal(reg.some((r) => r.name === 'sidebar.panellist'), false, `宿主无 layout 时不应注册侧边栏图标：${JSON.stringify(reg)}`)
+
+  const skipped = beacons.find((item) => item.phase === 'panel-register-skipped')
+
+  assert.ok(skipped !== undefined, `降级应落 beacon：${JSON.stringify(beacons)}`)
+
+})
+
+
+// ── 0.1.9 缺口 A：待跳转队列取走后要真的跳到新会话 ─────────────────────────
+
+await test('0.1.9 缺口A：宿主有 uiWorkspace 时，取到待跳转目标就会跳过去', async () => {
+  await boot(VIEW, { withUiWorkspace: true })
+
+  server.__pendingNavigation = ['session-child-1']
+  await page.waitForFunction(() => window.__openSessionCalls.length > 0, undefined, { timeout: 8000 })
+  const calls = await page.evaluate(() => window.__openSessionCalls.slice())
+  assert.deepEqual(calls, ['session-child-1'], `应当跳到新会话：${JSON.stringify(calls)}`)
+})
+
+await test('0.1.9 缺口A：目标只推一次（服务端取走即清空）', async () => {
+  await boot(VIEW, { withUiWorkspace: true })
+
+  server.__pendingNavigation = ['session-child-2']
+  await page.waitForFunction(() => window.__openSessionCalls.length > 0, undefined, { timeout: 8000 })
+  await page.waitForTimeout(1500)
+  const calls = await page.evaluate(() => window.__openSessionCalls.slice())
+  assert.deepEqual(calls, ['session-child-2'], `同一个目标不该跳两次：${JSON.stringify(calls)}`)
+})
+
+await test('0.1.9 缺口A：宿主没有 uiWorkspace 时不拉队列（目标不能被清掉又跳不过去）', async () => {
+  await boot(VIEW, { withUiWorkspace: false })
+
+  server.__pendingNavigation = ['session-child-3']
+  await page.waitForTimeout(2500)
+  const calls = await page.evaluate(() => window.__openSessionCalls.slice())
+  assert.equal(calls.length, 0, `没有 uiWorkspace 时不该跳：${JSON.stringify(calls)}`)
+  const still = server.__pendingNavigation ?? []
+  assert.deepEqual(still, ['session-child-3'], `目标必须还在队列里等宿主就绪：${JSON.stringify(still)}`)
 })
 
 await browser.close()

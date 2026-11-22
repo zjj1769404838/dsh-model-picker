@@ -5,6 +5,7 @@ node_modules
 tmp/
 .work/
 .dsh-ops/
+.dsh-progress/
 data/
 
 # 误建空文件

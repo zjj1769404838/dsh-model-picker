@@ -13,7 +13,7 @@
  */
 
 export const PLUGIN_NAME = '@zjjlivingfree/dsh-model-picker'
-export const PLUGIN_VERSION = '0.1.8'
+export const PLUGIN_VERSION = '0.1.9'
 
 // ─────────────────────────────── 配置 ───────────────────────────────
 
@@ -36,6 +36,26 @@ export interface AutoSelectConfig {
   requestRetryMax?: number
   /** 插件自行重试的退避阶梯（毫秒），超出长度取末值；Retry-After 优先。 */
   requestRetryBackoffMs?: number[]
+  /** 0.1.9 能力 1「错误自动继续」总开关；默认关闭。 */
+  autoResumeEnabled?: boolean
+  /** 同类错误连续失败多少次后放弃续作（默认 3）。 */
+  autoResumeConsecutiveMax?: number
+  /** 整个会话累计最多续作多少次（默认 10）。 */
+  autoResumeSessionMax?: number
+  /** 续作消息里附带的续跑指令（默认「继续未完成的任务」）。 */
+  autoResumeContinuePrompt?: string
+  /** 0.1.9 能力 2「上下文阈值升级会话」总开关；默认关闭。 */
+  escalateEnabled?: boolean
+  /** 占用率阈值（0~1），达到即升级到新会话（默认 0.85）。 */
+  escalateThresholdRatio?: number
+  /** 整条升级链最多几层（默认 3）。 */
+  escalateMaxChainDepth?: number
+  /** 交接消息里附带的续跑指令（默认「继续未完成的任务」）。 */
+  escalateContinuePrompt?: string
+  /** 升级成功后是否归档父会话（默认 true；宿主原生可逆，可 unarchiveSession 恢复）。 */
+  escalateArchiveParent?: boolean
+  /** 升级成功后是否按父会话命名子会话（默认 true）。 */
+  escalateRenameChild?: boolean
   /** provider 优先顺序；未列出的按宿主 listProviders() 顺序排在后面。 */
   providerOrder: string[]
   /** 单模型优先顺序，写成 'provider/model'；未列出的排在后面。 */
@@ -151,6 +171,16 @@ export const DEFAULT_CONFIG: AutoSelectConfig = Object.freeze({
   requestRetryEnabled: true,
   requestRetryMax: 3,
   requestRetryBackoffMs: [2000, 5000, 10000],
+  autoResumeEnabled: false,
+  autoResumeConsecutiveMax: 3,
+  autoResumeSessionMax: 10,
+  autoResumeContinuePrompt: '继续未完成的任务',
+  escalateEnabled: false,
+  escalateThresholdRatio: 0.85,
+  escalateMaxChainDepth: 3,
+  escalateContinuePrompt: '继续未完成的任务',
+  escalateArchiveParent: true,
+  escalateRenameChild: true,
   crossClassFallback: false,
   enabled: true,
   disabledModels: [],
@@ -284,6 +314,25 @@ export function normalizeCustomGroups(value: unknown): CustomGroup[] {
     requestRetryEnabled: input.requestRetryEnabled === undefined ? DEFAULT_CONFIG.requestRetryEnabled : input.requestRetryEnabled !== false,
     requestRetryMax: nonNegativeInt(input.requestRetryMax, DEFAULT_CONFIG.requestRetryMax!),
     requestRetryBackoffMs: Array.isArray(input.requestRetryBackoffMs) ? input.requestRetryBackoffMs : DEFAULT_CONFIG.requestRetryBackoffMs,
+    autoResumeEnabled: input.autoResumeEnabled === undefined ? DEFAULT_CONFIG.autoResumeEnabled : input.autoResumeEnabled === true,
+    autoResumeConsecutiveMax: nonNegativeInt(input.autoResumeConsecutiveMax, DEFAULT_CONFIG.autoResumeConsecutiveMax!),
+    autoResumeSessionMax: nonNegativeInt(input.autoResumeSessionMax, DEFAULT_CONFIG.autoResumeSessionMax!),
+    autoResumeContinuePrompt:
+      typeof input.autoResumeContinuePrompt === 'string' && input.autoResumeContinuePrompt.trim().length > 0
+        ? input.autoResumeContinuePrompt.trim()
+        : DEFAULT_CONFIG.autoResumeContinuePrompt!,
+    escalateEnabled: input.escalateEnabled === undefined ? DEFAULT_CONFIG.escalateEnabled : input.escalateEnabled === true,
+    escalateThresholdRatio:
+      typeof input.escalateThresholdRatio === 'number' && Number.isFinite(input.escalateThresholdRatio) && input.escalateThresholdRatio > 0
+        ? input.escalateThresholdRatio
+        : DEFAULT_CONFIG.escalateThresholdRatio!,
+    escalateMaxChainDepth: nonNegativeInt(input.escalateMaxChainDepth, DEFAULT_CONFIG.escalateMaxChainDepth!),
+    escalateContinuePrompt:
+      typeof input.escalateContinuePrompt === 'string' && input.escalateContinuePrompt.trim().length > 0
+        ? input.escalateContinuePrompt.trim()
+        : DEFAULT_CONFIG.escalateContinuePrompt!,
+    escalateArchiveParent: input.escalateArchiveParent === undefined ? DEFAULT_CONFIG.escalateArchiveParent : input.escalateArchiveParent !== false,
+    escalateRenameChild: input.escalateRenameChild === undefined ? DEFAULT_CONFIG.escalateRenameChild : input.escalateRenameChild !== false,
   }
 }
 
@@ -1165,6 +1214,155 @@ export function decideOnError(request: ErrorRequest): ErrorAction {
   }
 }
 
+// ─────────────────────── 0.1.9 双能力决策（纯函数） ───────────────────────
+
+/** 续作决策：只有「回合级失败 + 瞬时且码表外 + 配额未超」才续作。 */
+export type ResumeAction =
+  | { action: 'giveup'; reasonCode: string; reason: string }
+  | { action: 'resume'; switchModel: boolean; reasonCode: string; reason: string }
+
+export interface ResumeRequest {
+  cfg: AutoSelectConfig
+  /** 失败分类；undefined = 未启用 0.1.8 分类（老路径），一律按不续作处理。 */
+  classification?: 'permanent' | 'transient' | 'unknown'
+  /** 宿主重试码表已覆盖并耗尽 → 不续作（避免与宿主重试叠加）。 */
+  hostOwns?: boolean
+  /** 用户主动中止 / 回合被打断 → 绝不续作。 */
+  aborted?: boolean
+  /** 同类错误连续失败次数（不含本次）。 */
+  consecutiveCount?: number
+  /** 本会话累计续作次数。 */
+  sessionCount?: number
+  /** 失败是否指向模型/端点不可用 → 续作前先切模型。 */
+  modelUnavailable?: boolean
+}
+
+/**
+ * 错误自动继续的续作决策（纯函数）。
+ * fail-closed：开关关 / 已中止 / 永久或未知错误 / 宿主已接管 / 配额触顶 → 一律不续作。
+ */
+export function decideResume(request: ResumeRequest): ResumeAction {
+  const cfg = request.cfg
+  if (cfg.autoResumeEnabled !== true) {
+    return { action: 'giveup', reasonCode: 'resume-disabled', reason: '错误自动继续未启用' }
+  }
+  if (request.aborted === true) {
+    return { action: 'giveup', reasonCode: 'resume-aborted', reason: '用户主动中止，不续作' }
+  }
+  if (request.classification !== 'transient') {
+    return {
+      action: 'giveup',
+      reasonCode: request.classification === 'permanent' ? 'resume-permanent' : 'resume-unknown',
+      reason: '失败不是可重试的瞬时错误，不续作',
+    }
+  }
+  if (request.hostOwns === true) {
+    return { action: 'giveup', reasonCode: 'resume-host-owns', reason: '宿主重试码表内且已耗尽，不叠加续作' }
+  }
+  const consecutiveMax = nonNegativeInt(cfg.autoResumeConsecutiveMax, DEFAULT_CONFIG.autoResumeConsecutiveMax!)
+  const sessionMax = nonNegativeInt(cfg.autoResumeSessionMax, DEFAULT_CONFIG.autoResumeSessionMax!)
+  const consecutive = nonNegativeInt(request.consecutiveCount, 0)
+  const session = nonNegativeInt(request.sessionCount, 0)
+  if (consecutive >= consecutiveMax) {
+    return {
+      action: 'giveup',
+      reasonCode: 'resume-consecutive-exhausted',
+      reason: `同类错误连续失败已达上限 ${consecutiveMax} 次`,
+    }
+  }
+  if (session >= sessionMax) {
+    return {
+      action: 'giveup',
+      reasonCode: 'resume-session-exhausted',
+      reason: `整会话续作已达上限 ${sessionMax} 次`,
+    }
+  }
+  return {
+    action: 'resume',
+    switchModel: request.modelUnavailable === true,
+    reasonCode: 'resume-transient',
+    reason: `瞬时错误且配额未超（连续 ${consecutive}/${consecutiveMax}，整会话 ${session}/${sessionMax}）`,
+  }
+}
+
+/** 升级决策：只有「回合正常完成 + 会话空闲 + 占用率过阈值 + 额度未耗尽」才升级。 */
+export type EscalateAction =
+  | { action: 'none'; reasonCode: string; reason: string }
+  | { action: 'escalate'; reasonCode: string; reason: string }
+
+export interface EscalateInput {
+  cfg: AutoSelectConfig
+  /** 已占用 token 数；缺失或 0 → 不动作。 */
+  occupancy: number | null | undefined
+  /** 上下文窗口上限；缺失或 0 → 不动作。 */
+  contextWindow: number | null | undefined
+  /** 整条升级链的深度（父会话为 0）。 */
+  chainDepth?: number
+  /** 本会话已升级次数（每会话只升级 1 次）。 */
+  escalationsDone?: number
+  /** 会话是否空闲。 */
+  agentIdle?: boolean
+  /** 回合是否以 completed 结束（error / aborted 一律不评估）。 */
+  turnCompleted?: boolean
+}
+
+/**
+ * 上下文阈值升级的判定（纯函数）。
+ * fail-closed：占用或窗口未知 → 不动作；error/aborted 回合 → 不评估；
+ * 链深或每会话额度触顶 → 不升级。
+ */
+export function decideEscalate(input: EscalateInput): EscalateAction {
+  const cfg = input.cfg
+  if (cfg.escalateEnabled !== true) {
+    return { action: 'none', reasonCode: 'escalate-disabled', reason: '上下文阈值升级未启用' }
+  }
+  if (input.turnCompleted !== true) {
+    return {
+      action: 'none',
+      reasonCode: 'escalate-turn-not-completed',
+      reason: '回合未正常完成（error / aborted 不评估升级）',
+    }
+  }
+  if (input.agentIdle !== true) {
+    return { action: 'none', reasonCode: 'escalate-busy', reason: '会话未空闲，不升级' }
+  }
+  const occupancy = typeof input.occupancy === 'number' && Number.isFinite(input.occupancy) ? input.occupancy : null
+  const contextWindow = typeof input.contextWindow === 'number' && Number.isFinite(input.contextWindow) ? input.contextWindow : null
+  if (occupancy === null || contextWindow === null || contextWindow <= 0 || occupancy <= 0) {
+    return { action: 'none', reasonCode: 'escalate-unknown-occupancy', reason: '上下文占用未知，不动作' }
+  }
+  const ratio = occupancy / contextWindow
+  const threshold =
+    typeof cfg.escalateThresholdRatio === 'number' && Number.isFinite(cfg.escalateThresholdRatio) && cfg.escalateThresholdRatio > 0
+      ? cfg.escalateThresholdRatio
+      : DEFAULT_CONFIG.escalateThresholdRatio!
+  if (ratio < threshold) {
+    return {
+      action: 'none',
+      reasonCode: 'escalate-below-threshold',
+      reason: `占用率 ${(ratio * 100).toFixed(1)}% 未达阈值 ${(threshold * 100).toFixed(1)}%`,
+    }
+  }
+  const chainDepth = nonNegativeInt(input.chainDepth, 0)
+  const maxChainDepth = nonNegativeInt(cfg.escalateMaxChainDepth, DEFAULT_CONFIG.escalateMaxChainDepth!)
+  if (chainDepth >= maxChainDepth) {
+    return {
+      action: 'none',
+      reasonCode: 'escalate-chain-depth-exhausted',
+      reason: `升级链深度已达上限 ${maxChainDepth} 层`,
+    }
+  }
+  const escalationsDone = nonNegativeInt(input.escalationsDone, 0)
+  if (escalationsDone >= 1) {
+    return { action: 'none', reasonCode: 'escalate-budget-exhausted', reason: '本会话已升级过一次，不再升级' }
+  }
+  return {
+    action: 'escalate',
+    reasonCode: 'escalate-threshold-reached',
+    reason: `占用率 ${(ratio * 100).toFixed(1)}% 达阈值 ${(threshold * 100).toFixed(1)}%，升级到新会话`,
+  }
+}
+
 // ─────────────────────────────── 日志 ───────────────────────────────
 
 export type LogEvent =
@@ -1176,7 +1374,10 @@ export type LogEvent =
   | 'cooldown-end'
   | 'giveup'
   | 'occupancy'
+  | 'resume'
+  | 'escalate'
   | 'config'
+
 
 export interface LogRecord {
   ts: number

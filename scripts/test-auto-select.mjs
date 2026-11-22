@@ -40,6 +40,8 @@ import {
   fieldsOf,
   classifyFailure,
   requestBackoffMs,
+  decideResume,
+  decideEscalate,
 } from '../lib/core.js'
 import { apply as applyPlugin, __test as nodeSide } from '../lib/index.js'
 
@@ -1571,6 +1573,216 @@ await test('0.1.8 P0 地基：下游耗尽（无结果）时插件自决重试',
 })
 
 
+// ─────────────────────────── 0.1.9 双能力：纯函数决策 ───────────────────────────
+
+const RESUME_CFG = resolveConfig({ autoResumeEnabled: true, autoResumeConsecutiveMax: 3, autoResumeSessionMax: 10 })
+
+await test('0.1.9 decideResume：开关关闭时不续作', () => {
+  const action = decideResume({ cfg: resolveConfig({}), classification: 'transient' })
+  assert.equal(action.action, 'giveup')
+  assert.equal(action.reasonCode, 'resume-disabled')
+})
+
+await test('0.1.9 decideResume：用户中止 / 永久 / 未知错误都不续作', () => {
+  const aborted = decideResume({ cfg: RESUME_CFG, classification: 'transient', aborted: true })
+  assert.equal(aborted.action, 'giveup')
+  assert.equal(aborted.reasonCode, 'resume-aborted')
+  const permanent = decideResume({ cfg: RESUME_CFG, classification: 'permanent' })
+  assert.equal(permanent.action, 'giveup')
+  assert.equal(permanent.reasonCode, 'resume-permanent')
+  const unknown = decideResume({ cfg: RESUME_CFG, classification: 'unknown' })
+  assert.equal(unknown.action, 'giveup')
+  assert.equal(unknown.reasonCode, 'resume-unknown')
+})
+
+await test('0.1.9 decideResume：宿主已接管时绝不叠加续作', () => {
+  const action = decideResume({ cfg: RESUME_CFG, classification: 'transient', hostOwns: true })
+  assert.equal(action.action, 'giveup')
+  assert.equal(action.reasonCode, 'resume-host-owns')
+})
+
+await test('0.1.9 decideResume：瞬时错误且配额未超 → 续作（模型不可用时先切模型）', () => {
+  const action = decideResume({ cfg: RESUME_CFG, classification: 'transient' })
+  assert.equal(action.action, 'resume')
+  assert.equal(action.switchModel, false)
+  const switched = decideResume({ cfg: RESUME_CFG, classification: 'transient', modelUnavailable: true })
+  assert.equal(switched.action, 'resume')
+  assert.equal(switched.switchModel, true)
+})
+
+await test('0.1.9 decideResume：连续次数 / 整会话次数触顶即停', () => {
+  const consecutive = decideResume({ cfg: RESUME_CFG, classification: 'transient', consecutiveCount: 3 })
+  assert.equal(consecutive.action, 'giveup')
+  assert.equal(consecutive.reasonCode, 'resume-consecutive-exhausted')
+  const session = decideResume({ cfg: RESUME_CFG, classification: 'transient', sessionCount: 10 })
+  assert.equal(session.action, 'giveup')
+  assert.equal(session.reasonCode, 'resume-session-exhausted')
+})
+
+const ESCALATE_CFG = resolveConfig({ escalateEnabled: true, escalateThresholdRatio: 0.85, escalateMaxChainDepth: 3 })
+
+await test('0.1.9 decideEscalate：未启用 / 回合未完成 / 会话繁忙都不升级', () => {
+  const disabled = decideEscalate({ cfg: resolveConfig({}), occupancy: 900, contextWindow: 1000 })
+  assert.equal(disabled.action, 'none')
+  assert.equal(disabled.reasonCode, 'escalate-disabled')
+  const notCompleted = decideEscalate({ cfg: ESCALATE_CFG, occupancy: 900, contextWindow: 1000, turnCompleted: false })
+  assert.equal(notCompleted.action, 'none')
+  assert.equal(notCompleted.reasonCode, 'escalate-turn-not-completed')
+  const busy = decideEscalate({ cfg: ESCALATE_CFG, occupancy: 900, contextWindow: 1000, turnCompleted: true, agentIdle: false })
+  assert.equal(busy.action, 'none')
+  assert.equal(busy.reasonCode, 'escalate-busy')
+})
+
+await test('0.1.9 decideEscalate：占用或窗口未知 → 零动作（fail-closed）', () => {
+  const missing = decideEscalate({ cfg: ESCALATE_CFG, occupancy: null, contextWindow: 1000, turnCompleted: true, agentIdle: true })
+  assert.equal(missing.action, 'none')
+  assert.equal(missing.reasonCode, 'escalate-unknown-occupancy')
+  const noWindow = decideEscalate({ cfg: ESCALATE_CFG, occupancy: 900, contextWindow: undefined, turnCompleted: true, agentIdle: true })
+  assert.equal(noWindow.action, 'none')
+  assert.equal(noWindow.reasonCode, 'escalate-unknown-occupancy')
+})
+
+await test('0.1.9 decideEscalate：未达阈值 / 链深触顶 / 已升级过都不升级', () => {
+  const below = decideEscalate({ cfg: ESCALATE_CFG, occupancy: 800, contextWindow: 1000, turnCompleted: true, agentIdle: true })
+  assert.equal(below.action, 'none')
+  assert.equal(below.reasonCode, 'escalate-below-threshold')
+  const depth = decideEscalate({ cfg: ESCALATE_CFG, occupancy: 900, contextWindow: 1000, chainDepth: 3, turnCompleted: true, agentIdle: true })
+  assert.equal(depth.action, 'none')
+  assert.equal(depth.reasonCode, 'escalate-chain-depth-exhausted')
+  const done = decideEscalate({ cfg: ESCALATE_CFG, occupancy: 900, contextWindow: 1000, escalationsDone: 1, turnCompleted: true, agentIdle: true })
+  assert.equal(done.action, 'none')
+  assert.equal(done.reasonCode, 'escalate-budget-exhausted')
+})
+
+await test('0.1.9 decideEscalate：占用过阈值且额度未耗尽 → 升级', () => {
+  const action = decideEscalate({ cfg: ESCALATE_CFG, occupancy: 900, contextWindow: 1000, turnCompleted: true, agentIdle: true })
+  assert.equal(action.action, 'escalate')
+  assert.equal(action.reasonCode, 'escalate-threshold-reached')
+})
+
+// ─────────────────────────── 0.1.9 能力 1：回合级错误 → 自动续作 ───────────────────────────
+
+function fakeResumeAgent(id, followups) {
+  return {
+    id,
+    session: { id },
+    followup: (message) => { followups.push(message) },
+    model: { current: () => ({ provider: 'alpha', model: 'text-a' }) },
+  }
+}
+
+await test('0.1.9 能力1：回合级瞬时错误 → 自动投递一次续作消息并记账', async () => {
+  const followups = []
+  const agent = fakeResumeAgent('session-resume', followups)
+  nodeSide.reset()
+  nodeSide.resumeLedger.clear()
+  nodeSide.setContext({ get: () => undefined }, { autoResumeEnabled: true, autoResumeConsecutiveMax: 3, autoResumeSessionMax: 10 })
+  await nodeSide.handleAgentError({ agent, turn: 1, step: 1, error: { code: 'SERVER', message: 'boom' } })
+  assert.equal(followups.length, 1, `瞬时错误应投递一次续作消息：${JSON.stringify(followups)}`)
+  const entry = nodeSide.resumeLedger.get('session-resume')
+  assert.ok(entry !== undefined, '续作后应写账本')
+  assert.equal(entry.consecutive, 1)
+  assert.equal(entry.session, 1)
+  assert.equal(entry.lastHandledTurn, 1)
+})
+
+await test('0.1.9 能力1：永久错误与用户中止都不投递续作、不写账本', async () => {
+  const followups = []
+  const agent = fakeResumeAgent('session-resume-2', followups)
+  nodeSide.reset()
+  nodeSide.resumeLedger.clear()
+  nodeSide.setContext({ get: () => undefined }, { autoResumeEnabled: true })
+  await nodeSide.handleAgentError({ agent, turn: 1, step: 1, error: { code: 'AUTH', message: 'bad key' } })
+  await nodeSide.handleAgentError({ agent, turn: 2, step: 1, error: { name: 'AbortError', message: 'aborted by user' } })
+  assert.equal(followups.length, 0, `非瞬时/中止错误不应续作：${JSON.stringify(followups)}`)
+  assert.equal(nodeSide.resumeLedger.has('session-resume-2'), false, '不应写续作账本')
+})
+
+await test('0.1.9 能力1：开关关闭时回合级错误也不续作', async () => {
+  const followups = []
+  const agent = fakeResumeAgent('session-resume-3', followups)
+  nodeSide.reset()
+  nodeSide.resumeLedger.clear()
+  nodeSide.setContext({ get: () => undefined }, { autoResumeEnabled: false })
+  await nodeSide.handleAgentError({ agent, turn: 1, step: 1, error: { code: 'SERVER', message: 'boom' } })
+  assert.equal(followups.length, 0, `开关关闭不应续作：${JSON.stringify(followups)}`)
+  assert.equal(nodeSide.resumeLedger.has('session-resume-3'), false, '开关关闭不应写账本')
+})
+
+
+// ── 0.1.9 缺口 B：新会话必须挂到父会话所在的 workspace ──────────────────────
+
+await test('0.1.9 缺口B：升级建出新会话后会把子会话挂到父会话的 workspace', async () => {
+  const attached = []
+  const created = []
+  const parentSession = { id: 'session-parent' }
+  const agent = {
+    id: 'session-parent',
+    session: parentSession,
+    status: 'idle',
+    model: { current: () => ({ provider: 'alpha', model: 'text-a' }) },
+    followup: () => {},
+  }
+  const childAgent = { id: 'child', session: { id: 'child' }, followup: () => {} }
+  const workspace = {
+    id: 'ws-1',
+    sessionIds: ['session-parent'],
+    attachSession: async (id) => { attached.push(id) },
+  }
+  const services = {
+    agents: {
+      get: () => agent,
+      create: async (options) => { created.push(options); return { agent: childAgent } },
+    },
+    workspaceRegistry: {
+      list: () => [workspace],
+      archiveSession: async () => {},
+    },
+    sessionProjections: {
+      snapshot: () => ({ values: { contextPressure: { projectedTokens: 900, contextWindow: 1000 } } }),
+    },
+    sessionTitle: { get: () => ({ title: '父会话' }), rename: () => {} },
+  }
+  nodeSide.reset()
+  nodeSide.escalationLedger.clear()
+  nodeSide.pendingNavigation.length = 0
+  // 回合正常完成由 session/event 处理器记账；这里直接预置，模拟「上一个回合已正常结束」。
+  nodeSide.escalationLedger.set('session-parent', { escalations: 0, depth: 0, escalatedTo: null, lastTurnCompleted: true })
+  nodeSide.setContext({ get: (name) => services[name] }, { escalateEnabled: true, escalateThresholdRatio: 0.85, escalateMaxChainDepth: 3 })
+  await nodeSide.evaluateEscalationForSession('session-parent', 'unit-test')
+  assert.equal(created.length, 1, `应当建出一个新会话：${JSON.stringify(created)}`)
+  const childId = created[0].sessionId
+  assert.equal(attached.length, 1, `新会话应当挂到 workspace 一次：${JSON.stringify(attached)}`)
+  assert.equal(attached[0], childId, `挂载的应当是新建的子会话 id：${JSON.stringify({ attached, childId })}`)
+})
+
+await test('0.1.9 缺口B：workspace 缺席时不阻断升级（新会话仍然建成）', async () => {
+  const created = []
+  const agent = {
+    id: 'session-parent-2',
+    session: { id: 'session-parent-2' },
+    status: 'idle',
+    model: { current: () => ({ provider: 'alpha', model: 'text-a' }) },
+    followup: () => {},
+  }
+  const services = {
+    agents: {
+      get: () => agent,
+      create: async (options) => { created.push(options); return { agent: { id: 'c2', session: { id: 'c2' }, followup: () => {} } } },
+    },
+    sessionProjections: {
+      snapshot: () => ({ values: { contextPressure: { projectedTokens: 900, contextWindow: 1000 } } }),
+    },
+  }
+  nodeSide.reset()
+  nodeSide.escalationLedger.clear()
+  nodeSide.pendingNavigation.length = 0
+  // 回合正常完成由 session/event 处理器记账；这里直接预置，模拟「上一个回合已正常结束」。
+  nodeSide.escalationLedger.set('session-parent-2', { escalations: 0, depth: 0, escalatedTo: null, lastTurnCompleted: true })
+  nodeSide.setContext({ get: (name) => services[name] }, { escalateEnabled: true, escalateThresholdRatio: 0.85, escalateMaxChainDepth: 3 })
+  await nodeSide.evaluateEscalationForSession('session-parent-2', 'unit-test')
+  assert.equal(created.length, 1, `workspace 缺席也应当建成新会话：${JSON.stringify(created)}`)
+})
 // ─────────────────────────── 汇总 ───────────────────────────
 console.log('')
 if (failures.length === 0) {

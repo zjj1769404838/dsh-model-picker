@@ -62,8 +62,14 @@ const UNASSIGNED_ROW_ATTR = 'data-mas-unassigned-row'
 /** 已隐藏/未入组模型行的标记：宿主下拉里整行 display:none，真正不出现。 */
 const HIDDEN_ROW_ATTR = 'data-mas-hidden-row'
 const POLL_MS = 15_000
+/** 待跳转轮询间隔：新建会话后 client 半边要跳过去，1s 足够快又不至于打爆路由。 */
+const NAV_POLL_MS = 1_000
 /** 宿主菜单里出现这些词就说明「免费」这件事宿主已经标过了，本插件不再补 `免`。 */
 const HOST_FREE_HINT = /免费|限免|免单|夜间折|折扣|订阅优先/
+/** 侧边栏面板 id：主区域面板（main keyed 槽）的 key，与 sidebar.panellist 的 id 相同。 */
+const PANEL_ID = 'model-picker'
+/** 侧边栏图标排序：排在宿主「插件」（order 0）之后。 */
+const PANEL_ORDER = 10
 
 interface CatalogEntry {
   key: string
@@ -281,11 +287,48 @@ function routeUrl(path: string): string {
   const base = directoryBase(document.baseURI || window.location.href)
   return new URL(path.replace(/^\/+/, ''), base).href
 }
-
 function apiUrl(suffix: string): string {
   return routeUrl(`${ROUTE}/${suffix.replace(/^\/+/, '')}`)
 }
 
+/**
+ * 待跳转：新会话建成后由 node 半边写队列，client 半边轮询取走后跳过去。
+ *
+ * 取走即清空（服务端 splice 语义）→ 同一个 id 只跳一次。
+ * 宿主没有 uiWorkspace 服务时静默跳过 —— 不能因为跳不过去就拖垮整个插件。
+ */
+let navigationInFlight = false
+
+async function loadPendingNavigation(): Promise<void> {
+  if (navigationInFlight) return
+  // 先确认宿主服务在位再去拉：服务端是「取走即清空」语义，宿主服务还没起来就拉，
+  // 目标会被清掉又跳不过去 —— 那是永久丢失。宁可这一轮不拉，下一轮再拉。
+  const workspace = clientCtx?.get?.('uiWorkspace')
+  if (workspace === undefined || workspace === null || typeof workspace.openSession !== 'function') {
+    beacon({ phase: 'navigation-wait', step: 'pending-navigation', note: 'uiWorkspace service not ready' })
+    return
+  }
+  navigationInFlight = true
+  try {
+    const res = await fetch(apiUrl('pending-navigation'), { headers: { accept: 'application/json' }, cache: 'no-store' })
+    if (!res.ok) return
+    const body = (await res.json()) as { targets?: unknown } | null
+    const targets = Array.isArray(body?.targets) ? body.targets.filter((v): v is string => typeof v === 'string' && v.length > 0) : []
+    if (targets.length === 0) return
+    for (const target of targets) {
+      try {
+        workspace.openSession(target)
+        beacon({ phase: 'navigation-done', step: 'pending-navigation', target })
+      } catch (err) {
+        beacon({ phase: 'navigation-failed', step: 'pending-navigation', target, note: String((err as Error)?.message ?? err).slice(0, 200) })
+      }
+    }
+  } catch {
+    /* 排障/跳转通道失败不影响主流程 */
+  } finally {
+    navigationInFlight = false
+  }
+}
 /**
  * 拉取模型目录。
  *
@@ -861,15 +904,24 @@ function modelRow(entry: CatalogEntry, opts: { restore?: boolean } = {}): HTMLEl
   const autoMode = groupingAuto()
   const unassigned = !autoMode && rules.length > 0 && groupId === ''
 
+  // 模型小卡片（0.1.9）：整块是一张可伸缩的卡片，控件在卡内换行，
+  // 不再是一行挤四个控件。卡片仍是 section 的直接子节点（既有断言按兄弟节点找模型行）。
   const row = el('div', {
     display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    padding: '10px 0',
-    borderBottom: `0.5px solid ${TOK.border}`,
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    gap: '8px',
+    padding: '10px 12px',
+    border: `0.5px solid ${TOK.border}`,
+    borderRadius: TOK.radius,
+    background: TOK.module,
+    // 自适应列：与同组其它卡片同行排布，窄栏自然降为单列。
+    flex: '1 1 240px',
+    minWidth: '0',
     opacity: unassigned || !showOn ? '0.5' : '1',
   })
   row.setAttribute('data-mas-model-row', entry.key)
+  row.setAttribute('data-mas-model-card', '1')
   row.title = `${entry.providerName} / ${entry.model}
 模态：${entry.modalities.join(', ') || '无'}（来源 ${entry.modalitySource}）
 计价系数：${entry.priceFactor === undefined ? '未知' : `x${entry.priceFactor.toFixed(2)}`}
@@ -914,7 +966,7 @@ function modelRow(entry: CatalogEntry, opts: { restore?: boolean } = {}): HTMLEl
   text.appendChild(descText(`${entry.providerName} · ${groupName}`))
   row.appendChild(text)
 
-  const controls = el('div', { display: 'flex', alignItems: 'center', gap: '12px', flex: '0 0 auto' })
+  const controls = el('div', { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', flex: '0 0 auto' })
 
   // 入组下拉：唯一的分组归属入口。没建组时禁用并提示先建组。
   const select = document.createElement('select')
@@ -1177,7 +1229,21 @@ const NUMBER_RULES: Record<string, { min: number; max: number; unit: string; ste
   catalogTtlMs: { min: 1_000, max: 3_600_000, unit: 'ms', step: 1_000 },
   occupancyRefreshMs: { min: 1_000, max: 600_000, unit: 'ms', step: 1_000 },
   probeIntervalMin: { min: 0, max: 1440, unit: '分钟（0 = 不自动探测）', step: 1 },
+  autoResumeConsecutiveMax: { min: 0, max: 20, unit: '次', step: 1 },
+  autoResumeSessionMax: { min: 0, max: 100, unit: '次', step: 1 },
+  escalateMaxChainDepth: { min: 0, max: 10, unit: '层', step: 1 },
+  escalateThresholdRatio: { min: 0.01, max: 1, unit: '占比', step: 0.01 },
 }
+
+/** 小数字段：不能像整数那样 Math.floor（0.85 会被抹成 0）。 */
+const DECIMAL_CONFIG_KEYS = new Set(['escalateThresholdRatio'])
+
+/** 「双能力」页签独占的配置项：不进「运行策略」，也不落「其他」兜底块。 */
+const DUAL_FIELD_KEYS = new Set([
+  'autoResumeEnabled', 'autoResumeConsecutiveMax', 'autoResumeSessionMax', 'autoResumeContinuePrompt',
+  'escalateEnabled', 'escalateThresholdRatio', 'escalateMaxChainDepth', 'escalateContinuePrompt',
+  'escalateArchiveParent', 'escalateRenameChild',
+])
 
 function configRow(field: ConfigField): HTMLElement {
   if (field.type === 'groups') return groupsEditor(field)
@@ -1226,7 +1292,9 @@ function configRow(field: ConfigField): HTMLElement {
         return
       }
       input.style.borderColor = ''
-      stage(field.key, Math.floor(raw), `${field.label} → ${Math.floor(raw)}`)
+      // 小数字段不能取整：0.85 会被 Math.floor 抹成 0。
+      const next = DECIMAL_CONFIG_KEYS.has(field.key) ? Number(raw.toFixed(4)) : Math.floor(raw)
+      stage(field.key, next, `${field.label} → ${next}`)
     })
     wrap.appendChild(input)
     wrap.appendChild(descText(rule === undefined ? '' : `${rule.min} – ${rule.max} ${rule.unit}`))
@@ -1396,6 +1464,17 @@ let modelsExpanded = false
 let advancedOpen = false
 const MODEL_PAGE = 12
 
+/** 设置页三个页签：模型 / 策略 / 双能力。三个页签同时渲染，切换只改可见性。 */
+type SettingsTab = 'models' | 'policy' | 'dual'
+const TAB_MODELS: SettingsTab = 'models'
+const TAB_POLICY: SettingsTab = 'policy'
+const TAB_DUAL: SettingsTab = 'dual'
+let settingsTab: SettingsTab = TAB_MODELS
+/** 当前设置视图挂在哪：宿主设置页 section（'section'）还是侧边栏主区域面板（'panel'）。 */
+type SettingsSurface = 'section' | 'panel'
+/** 客户端半边的宿主 ctx：读 layout（切侧边栏面板）等服务用。 */
+let clientCtx: any = null
+
 /**
  * 顶部操作条（sticky）：标题 + 摘要 + 重新获取 + 保存/放弃 + 状态行。
  *
@@ -1449,6 +1528,19 @@ function stickyBar(): HTMLElement {
       { 'data-mas-retry': '1' },
     ),
   )
+  // 宿主设置页旧区块保留完整视图，再给一个入口直接切到侧边栏面板。
+  if (settingsSurface === 'section' && sidebarPanelAvailable()) {
+    top.appendChild(
+      actionButton(
+        '在侧边栏面板中打开',
+        '在侧边栏新增的「模型自动选择」面板里打开同一套设置',
+        () => {
+          openInSidebarPanel(TAB_MODELS)
+        },
+        { 'data-mas-open-panel': '1' },
+      ),
+    )
+  }
   if (pending) {
     top.appendChild(actionButton('放弃', '丢弃全部未保存改动，恢复成已保存的配置', discardDraft))
     top.appendChild(
@@ -1512,6 +1604,7 @@ function groupHead(label: string, note: string, id: string, list: CatalogEntry[]
     gap: '8px',
     padding: '14px 0 4px',
     borderBottom: `0.5px solid ${TOK.border}`,
+    flex: '0 0 100%',
   })
   head.setAttribute('data-mas-group-head', id)
   head.appendChild(el('span', { fontSize: '13px', fontWeight: '600', color: TOK.primary }, label))
@@ -1538,13 +1631,15 @@ function groupHead(label: string, note: string, id: string, list: CatalogEntry[]
  * 超过 MODEL_PAGE 行先折叠，避免 50 行铺满整页。筛选 chips 只改本模块状态 + notify，不重排宿主 DOM。
  */
 function modelsSection(): HTMLElement {
-  const section = el('div', { display: 'flex', flexDirection: 'column', gap: '0' })
+  // 卡片网格：整段用 flex-wrap 排布，卡片是 section 的直接子节点
+  // （既有断言按兄弟节点遍历找模型行，不能改成再包一层容器）。
+  const section = el('div', { display: 'flex', flexDirection: 'row', flexWrap: 'wrap', alignItems: 'stretch', gap: '10px', width: '100%' })
   section.setAttribute('data-mas-section', 'models')
 
   if (view === null) {
     const hint = el(
       'div',
-      { padding: '12px 0', fontSize: '13px', color: viewError === null ? TOK.tertiary : TOK.error },
+      { padding: '12px 0', fontSize: '13px', color: viewError === null ? TOK.tertiary : TOK.error, flex: '0 0 100%' },
       viewError === null ? '模型目录加载中…' : `模型目录加载失败：${viewError}`,
     )
     hint.setAttribute('role', 'status')
@@ -1558,7 +1653,7 @@ function modelsSection(): HTMLElement {
     section.appendChild(
       el(
         'div',
-        { padding: '12px 0', fontSize: '13px', color: TOK.tertiary },
+        { padding: '12px 0', fontSize: '13px', color: TOK.tertiary, flex: '0 0 100%' },
         '没有取到任何模型：请先在 dsh 设置页配置 provider 与 API Key，再点上方「重新获取」。',
       ),
     )
@@ -1576,7 +1671,7 @@ function modelsSection(): HTMLElement {
   if (!hasRules) modelFilter = FILTER_ALL
   const loose = entries.filter((entry) => groupIdOf(entry) === '')
 
-  const tools = el('div', { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', padding: '2px 0 8px' })
+  const tools = el('div', { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', padding: '2px 0 8px', flex: '0 0 100%' })
   const search = textInput('', '搜索模型名或来源…', '200px', { 'data-mas-search': '1' })
   search.addEventListener('input', () => {
     const needle = search.value.trim().toLowerCase()
@@ -1589,6 +1684,31 @@ function modelsSection(): HTMLElement {
     }
   })
   tools.appendChild(search)
+
+  // 分组方式（手工 / 自动）：只放在「模型」页签顶部工具条，策略页签不再重复同一个控件。
+  if ((config?.fields ?? []).some((item) => item.key === 'groupMode')) {
+    const groupModeWrap = el('label', { display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: TOK.secondary, whiteSpace: 'nowrap' })
+    groupModeWrap.appendChild(document.createTextNode('分组方式'))
+    const groupModeSelect = document.createElement('select')
+    groupModeSelect.style.cssText = `height:30px;border-radius:${TOK.radius};border:none;background:${TOK.module};color:${TOK.primary};font:inherit;font-size:13px;padding:0 8px;cursor:pointer`
+    groupModeSelect.setAttribute(OWN_ATTR, '1')
+    groupModeSelect.setAttribute('data-mas-field', 'groupMode')
+    for (const item of [
+      { value: 'manual', label: '手工分组' },
+      { value: 'auto', label: '自动分组（免费 / 积分 / 未知）' },
+    ]) {
+      const option = document.createElement('option')
+      option.value = item.value
+      option.textContent = item.label
+      groupModeSelect.appendChild(option)
+    }
+    groupModeSelect.value = groupingAuto() ? 'auto' : 'manual'
+    groupModeSelect.addEventListener('change', () => {
+      stage('groupMode', groupModeSelect.value, `分组方式 → ${groupModeSelect.value === 'auto' ? '自动分组' : '手工分组'}`)
+    })
+    groupModeWrap.appendChild(groupModeSelect)
+    tools.appendChild(groupModeWrap)
+  }
 
   if (hasRules) {
     const chips = [
@@ -1715,9 +1835,11 @@ function modelsSection(): HTMLElement {
   for (const segment of segments) {
     section.appendChild(groupHead(segment.label, segment.note, segment.id, segment.list))
     if (segment.list.length === 0) {
-      section.appendChild(descText(autoMode
+      const empty = descText(autoMode
         ? '这一组目前没有模型。'
-        : '这个组还没有成员：用下面任意一行模型的「入组」下拉把模型选进来。'))
+        : '这个组还没有成员：用下面任意一行模型的「入组」下拉把模型选进来。')
+      empty.style.flex = '0 0 100%'
+      section.appendChild(empty)
       continue
     }
     const shown = modelsExpanded ? segment.list : segment.list.slice(0, MODEL_PAGE)
@@ -1726,17 +1848,17 @@ function modelsSection(): HTMLElement {
     for (const entry of shown) section.appendChild(modelRow(entry, isUnavailableSegment ? { restore: true } : {}))
     const hiddenCount = segment.list.length - shown.length
     if (hiddenCount > 0) {
-      section.appendChild(
-        actionButton(
-          `显示全部 ${segment.list.length} 个（还有 ${hiddenCount} 个未展开）`,
-          '展开这个分组的全部模型（搜索只作用于已显示的行）',
-          () => {
-            modelsExpanded = true
-            notify()
-          },
-          { 'data-mas-expand': segment.id },
-        ),
+      const expand = actionButton(
+        `显示全部 ${segment.list.length} 个（还有 ${hiddenCount} 个未展开）`,
+        '展开这个分组的全部模型（搜索只作用于已显示的行）',
+        () => {
+          modelsExpanded = true
+          notify()
+        },
+        { 'data-mas-expand': segment.id },
       )
+      expand.style.flex = '0 0 100%'
+      section.appendChild(expand)
     }
   }
 
@@ -1745,7 +1867,7 @@ function modelsSection(): HTMLElement {
     section.appendChild(
       el(
         'div',
-        { marginTop: '8px', fontSize: '12px', color: TOK.warn },
+        { marginTop: '8px', fontSize: '12px', color: TOK.warn, flex: '0 0 100%' },
         `有 ${failed.length} 个来源拉取失败：${failed.map((item) => `${item.name}（${item.message}）`).join('；')}`,
       ),
     )
@@ -1760,7 +1882,7 @@ function groupsSection(): HTMLElement {
   section.setAttribute('data-mas-section', 'groups')
 
   if (groupingAuto()) {
-    section.appendChild(descText('当前是「自动分组」：按模型是否免费实时分成 免费 / 积分 / 未知 三组。原有自定义分组已暂存，切回「手工」（运行策略 → 分组方式）原样恢复。'))
+    section.appendChild(descText('当前是「自动分组」：按模型是否免费实时分成 免费 / 积分 / 未知 三组。原有自定义分组已暂存，切回「手工」（模型 → 分组方式）原样恢复。'))
     return section
   }
 
@@ -1783,7 +1905,7 @@ function groupsSection(): HTMLElement {
 /** 运行策略的语义分块：只留用户真正会改的项，缓存/排序/徽标/错误码等高级旋钮不再露面。 */
 const FIELD_BLOCKS: Array<{ id: string; title: string; desc: string; keys: string[] }> = [
   { id: 'basic', title: '默认模型与总开关', desc: '起手用哪个模型，以及插件是否接管选择', keys: ['enabled', 'defaultModel'] },
-  { id: 'grouping', title: '分组与自动探测', desc: '分组方式：手工（自定义分组）或自动（按免费 / 积分 / 未知）；定时探测间隔 0 = 不自动', keys: ['groupMode', 'probeIntervalMin'] },
+  { id: 'grouping', title: '自动探测', desc: '定时探测间隔 0 = 不自动探测（分组方式在「模型」页签顶部切换）', keys: ['probeIntervalMin'] },
   { id: 'retry', title: '失败重试', desc: '同一个模型报错时先重试；机会用完才换模型。启用失败分类后：永久错误直接切、瞬时错误按可配阶梯重试，宿主负责的错误（限流/服务端等）不叠加等待', keys: ['maxRetries', 'requestRetryEnabled', 'requestRetryMax', 'requestRetryBackoffMs'] },
   {
     id: 'switch',
@@ -1798,7 +1920,42 @@ const QUIET_FIELDS = new Set([
   'customGroups', 'groupByKind',
   'disabledModels', 'disabledGroups', 'hiddenModels', 'hiddenGroups',
   'modelEfforts',
+  // 分组方式改在「模型」页签顶部工具条里配置，这里排除以免在「其他」兜底块重复出现。
+  'groupMode',
 ])
+
+/** 「双能力」页签：错误自动继续 + 上下文升级会话。两个子区块，各自标题 + 说明 + 字段。 */
+function dualSection(): HTMLElement {
+  const section = el('div', { display: 'flex', flexDirection: 'column', gap: '0' })
+  section.setAttribute('data-mas-section', 'dual')
+  if (config === null) {
+    section.appendChild(el('div', { padding: '12px 0', fontSize: '13px', color: TOK.tertiary }, '配置加载中…'))
+    return section
+  }
+  const groups: Array<{ title: string; desc: string; keys: string[] }> = [
+    {
+      title: '错误自动继续',
+      desc: '回合因瞬时错误失败后，自动发起新一轮「继续未完成的任务」。会真实投递消息、消耗上游额度，默认关闭。',
+      keys: ['autoResumeEnabled', 'autoResumeConsecutiveMax', 'autoResumeSessionMax', 'autoResumeContinuePrompt'],
+    },
+    {
+      title: '上下文升级会话',
+      desc: '上下文占用超过阈值时新建会话继续任务，并可归档旧会话。会中断旧会话正在跑的回合，默认关闭。',
+      keys: ['escalateEnabled', 'escalateThresholdRatio', 'escalateMaxChainDepth', 'escalateContinuePrompt', 'escalateArchiveParent', 'escalateRenameChild'],
+    },
+  ]
+  for (const group of groups) {
+    const fields = config.fields.filter((field) => group.keys.includes(field.key))
+    if (fields.length === 0) continue
+    section.appendChild(blockTitle(group.title, group.desc))
+    for (const field of fields) section.appendChild(configRow(field))
+  }
+  section.appendChild(
+    el('div', { marginTop: '10px', fontSize: '12px', lineHeight: '18px', color: TOK.tertiary },
+      '两个能力都默认关闭：开启后插件会自行发起续作或新建会话，行为对用户可见。'),
+  )
+  return section
+}
 
 function policySection(): HTMLElement {
   const section = el('div', { display: 'flex', flexDirection: 'column', gap: '0' })
@@ -1819,7 +1976,7 @@ function policySection(): HTMLElement {
   }
   // 未来新增的配置字段自动落到「其他」，不会被界面吞掉；QUIET_FIELDS 是刻意不在本区展示的项。
   const rest = config.fields.filter(
-    (field) => !known.has(field.key) && !QUIET_FIELDS.has(field.key),
+    (field) => !known.has(field.key) && !QUIET_FIELDS.has(field.key) && !DUAL_FIELD_KEYS.has(field.key),
   )
   if (rest.length > 0) {
     section.appendChild(blockTitle('其他', '新增配置项'))
@@ -1845,10 +2002,54 @@ function statusLine(): HTMLElement | null {
 }
 
 /**
- * 设置页唯一完整视图：sticky 操作条 → ① 分组 → ② 模型入组 → ③ 运行策略。
+ * 页签栏：模型 / 策略 / 双能力。
  *
- * 顺序就是用户的操作顺序（用户 m04660 / m04856）：先建组、再把模型选进组、最后定运行策略，
- * 全部改完点顶部「保存」才生效。不引入页签，保持单页顺读。
+ * 三个页签同时渲染，切换只改 hidden 与选中态 —— 既有断言按 DOM 直接取字段
+ * （如 `[data-mas-field="maxRetries"]`），若只渲染当前页签，这些断言会失效。
+ */
+function tabBar(): HTMLElement {
+  const bar = el('div', {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
+    width: '100%',
+    borderBottom: `0.5px solid ${TOK.border}`,
+    overflowX: 'auto',
+    flexWrap: 'nowrap',
+  })
+  const tabs: Array<{ id: SettingsTab; label: string }> = [
+    { id: TAB_MODELS, label: '模型' },
+    { id: TAB_POLICY, label: '策略' },
+    { id: TAB_DUAL, label: '双能力' },
+  ]
+  for (const tab of tabs) {
+    const active = settingsTab === tab.id
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.textContent = tab.label
+    button.title = active ? `当前页签：${tab.label}` : `切到「${tab.label}」`
+    button.setAttribute(OWN_ATTR, '1')
+    button.setAttribute('data-mas-tab', tab.id)
+    button.setAttribute('role', 'tab')
+    button.setAttribute('aria-selected', active ? 'true' : 'false')
+    button.style.cssText =
+      `height:34px;padding:0 12px;border:none;background:transparent;font:inherit;font-size:14px;cursor:pointer;` +
+      `white-space:nowrap;color:${active ? TOK.primary : TOK.tertiary};` +
+      `border-bottom:2px solid ${active ? TOK.primary : 'transparent'}`
+    button.addEventListener('click', () => {
+      if (settingsTab === tab.id) return
+      settingsTab = tab.id
+      notify()
+    })
+    bar.appendChild(button)
+  }
+  return bar
+}
+
+/**
+ * 设置页完整视图：sticky 操作条 → 页签栏 → 三个页签面板（模型 / 策略 / 双能力）。
+ *
+ * 三个页签同时渲染、切换只改可见性（既有断言按 DOM 取字段，不受页签影响）。
  */
 function buildSettingsForm(): HTMLElement {
   const wrap = el('div', {
@@ -1863,24 +2064,45 @@ function buildSettingsForm(): HTMLElement {
   wrap.appendChild(stickyBar())
 
   const autoMode = groupingAuto()
+
+  // ── 页签一：模型（分组 + 模型小卡片） ──
+  const models = el('div', { display: 'flex', flexDirection: 'column', gap: '0' })
+  models.setAttribute('data-mas-tab-panel', TAB_MODELS)
   const groups = el('div', { display: 'flex', flexDirection: 'column', gap: '0' })
   groups.appendChild(stepTitle('1', '分组', autoMode
     ? '自动分组：按模型是否免费实时分三组，切回「手工」可恢复原有自定义分组。'
     : '先建组：dsh 默认按来源或类型分组，这里的组名就是模型下拉里的分组标题。'))
   groups.appendChild(groupsSection())
-  wrap.appendChild(groups)
-
-  const models = el('div', { display: 'flex', flexDirection: 'column', gap: '0' })
-  models.appendChild(stepTitle('2', autoMode ? '模型' : '模型入组', autoMode
-    ? '逐行「测试」可验证模型能否调通；调不通的按失败类型自动归到末尾「不可调」或「探测失败」分组。'
+  models.appendChild(groups)
+  const modelList = el('div', { display: 'flex', flexDirection: 'column', gap: '0' })
+  modelList.appendChild(stepTitle('2', autoMode ? '模型' : '模型入组', autoMode
+    ? '逐个「测试」可验证模型能否调通；调不通的按失败类型自动归到末尾「不可调」或「探测失败」分组。'
     : '再把模型选进组：没入组的模型默认不可用，也不出现在模型下拉里。'))
-  models.appendChild(modelsSection())
-  wrap.appendChild(models)
+  modelList.appendChild(modelsSection())
+  models.appendChild(modelList)
 
+  // ── 页签二：策略 ──
   const policy = el('div', { display: 'flex', flexDirection: 'column', gap: '0' })
-  policy.appendChild(stepTitle('3', '运行策略', '分组方式、自动探测间隔、失败重试与自动切换。改完点顶部「保存」才生效。'))
+  policy.setAttribute('data-mas-tab-panel', TAB_POLICY)
+  policy.appendChild(stepTitle('3', '运行策略', '自动探测间隔、失败重试与自动切换。改完点顶部「保存」才生效。'))
   policy.appendChild(policySection())
+
+  // ── 页签三：双能力 ──
+  const dual = el('div', { display: 'flex', flexDirection: 'column', gap: '0' })
+  dual.setAttribute('data-mas-tab-panel', TAB_DUAL)
+  dual.appendChild(dualSection())
+
+  wrap.appendChild(tabBar())
+  wrap.appendChild(models)
   wrap.appendChild(policy)
+  wrap.appendChild(dual)
+
+  // 三个面板同时在 DOM 里，只改可见性（既有断言按 DOM 取字段，不受页签影响）。
+  for (const panel of [models, policy, dual]) {
+    const active = panel.getAttribute('data-mas-tab-panel') === settingsTab
+    panel.hidden = !active
+    panel.style.display = active ? 'flex' : 'none'
+  }
 
   return wrap
 }
@@ -2150,7 +2372,8 @@ function ensureSettingsButton(trigger: HTMLElement): void {
   button.addEventListener('click', (event) => {
     event.preventDefault()
     event.stopPropagation()
-    openSettingsSection()
+    // 优先切到侧边栏面板的「策略」页签；宿主没有 layout 服务时退回旧的「打开宿主设置页」。
+    if (!openInSidebarPanel(TAB_POLICY)) openSettingsSection()
   })
 
   parent.insertBefore(button, trigger.nextSibling)
@@ -3458,14 +3681,15 @@ function registerModelSelectSlot(ctx: any): boolean {
  * 挂载并返回卸载函数。
  * 只在「目录或配置真的变了」时重绘：15s 轮询也会 notify，若无条件重绘会把正在输入的表单冲掉。
  */
-function mountSettingsForm(host: HTMLElement): () => void {
+function mountSettingsForm(host: HTMLElement, surface: SettingsSurface = 'section'): () => void {
   let lastSignature: string | null = null
   const render = () => {
     // 签名必须带上状态行：否则保存成功/失败、范围校验这些「只改文案不改数据」的反馈会被防重绘挡掉，
-    // 用户看到的就是「点了没反应」。
-    const signature = `${config === null ? '∅' : JSON.stringify(config.config)}#${view === null ? '∅' : `${view.entries.length}:${(view.groups ?? []).map((g) => g.id).join(',')}`}#${draft === null ? '∅' : JSON.stringify(draft)}#${modelFilter}:${modelsExpanded}:${advancedOpen}#${statusKind}:${statusText}`
+    // 用户看到的就是「点了没反应」。页签也要进签名，否则切页签不会重绘。
+    const signature = `${config === null ? '∅' : JSON.stringify(config.config)}#${view === null ? '∅' : `${view.entries.length}:${(view.groups ?? []).map((g) => g.id).join(',')}`}#${draft === null ? '∅' : JSON.stringify(draft)}#${modelFilter}:${modelsExpanded}:${advancedOpen}:${settingsTab}#${statusKind}:${statusText}#${surface}`
     if (signature === lastSignature && host.childElementCount > 0) return
     lastSignature = signature
+    settingsSurface = surface
     host.textContent = ''
     host.appendChild(buildSettingsForm())
   }
@@ -3497,7 +3721,7 @@ function registerSettingsSection(ctx: any): boolean {
         React.useEffect(() => {
           const host = ref.current
           if (host === null || host === undefined) return undefined
-          const unmount = mountSettingsForm(host)
+          const unmount = mountSettingsForm(host, 'section')
           return () => {
             unmount()
             host.textContent = ''
@@ -3510,17 +3734,121 @@ function registerSettingsSection(ctx: any): boolean {
   return true
 }
 
+// ──────────────────── 侧边栏面板（main keyed 槽 + sidebar.panellist） ────────────────────
+//
+// 契约（照抄宿主 dsh-client-ui-plugin-manager 的现成配方，asar 实读坐实）：
+//   - `main` 是 keyed 槽：register 只带 `key`；面板能否被选中判据 = main 槽里有没有同 key 的
+//     注册项，所以必须**先**注册 main，再注册侧边栏图标，否则 selectPanel 会抛
+//     `layout.selectPanel: main panel "model-picker" is not registered`。
+//   - `sidebar.panellist` 是 list 槽：register 带 `id`（与 main 的 key 相同）/ `order` / `label`。
+//   - 侧边栏自己点图标时调 `ctx.layout.selectPanel(id)`，插件不需要接管点击。
+//   - 取 layout 用 `ctx.get('layout')`：动态门面对 get 不要求 inject 声明。
+
+/** 宿主 layout 服务是否可用（切侧边栏面板要靠它）。 */
+function sidebarPanelAvailable(): boolean {
+  const layout = clientCtx?.get?.('layout')
+  return layout !== undefined && layout !== null && typeof layout.selectPanel === 'function'
+}
+
+/** 切到侧边栏面板（切过去之前先设好页签）。取不到 layout 时返回 false，调用方走降级路径。 */
+function openInSidebarPanel(tab: SettingsTab): boolean {
+  if (!sidebarPanelAvailable()) return false
+  settingsTab = tab
+  notify()
+  try {
+    clientCtx.get('layout').selectPanel(PANEL_ID)
+    return true
+  } catch {
+    return false
+  }
+}
+
+/** 侧边栏图标：内联 SVG，不依赖宿主的图标包（拿不到包也不影响注册）。 */
+function ModelPickerPanelIcon(props: any): any {
+  const React = loadReact()
+  if (React === null) return null
+  const size = typeof props?.size === 'number' ? props.size : 18
+  return React.createElement(
+    'svg',
+    {
+      width: size,
+      height: size,
+      viewBox: '0 0 16 16',
+      fill: 'none',
+      stroke: 'currentColor',
+      'stroke-width': '1.3',
+      'stroke-linecap': 'round',
+      'aria-hidden': 'true',
+    },
+    React.createElement('rect', { key: 'a', x: '2.2', y: '2.2', width: '11.6', height: '11.6', rx: '2.6' }),
+    React.createElement('path', { key: 'b', d: 'M5.4 8h5.2M8 5.4v5.2' }),
+  )
+}
+
+/**
+ * 注册侧边栏面板：主区域面板（main keyed 槽）+ 侧边栏图标（sidebar.panellist）。
+ *
+ * 取不到 layout（宿主半边服务缺失）时静默降级：不注册图标，插件其余功能不受影响。
+ */
+function registerSidebarPanel(ctx: any): boolean {
+  const slots = ctx?.slots
+  if (slots === undefined || slots === null) return false
+  if (typeof slots.inject !== 'function' || typeof slots.register !== 'function') return false
+  const React = loadReact()
+  if (React === null) return false
+  if (!sidebarPanelAvailable()) return false
+  // main 槽：keyed，注册项只带 key。
+  slots.inject('main', () =>
+    slots.register(
+      { name: 'main', key: PANEL_ID },
+      function ModelPickerPanel() {
+        const ref = React.useRef(null)
+        React.useEffect(() => {
+          const host = ref.current
+          if (host === null || host === undefined) return undefined
+          const unmount = mountSettingsForm(host, 'panel')
+          return () => {
+            unmount()
+            host.textContent = ''
+          }
+        }, [])
+        return React.createElement('div', { ref, style: { padding: '16px 20px 24px' } })
+      },
+    ),
+  )
+  // 侧边栏图标：list 槽，id 与 main 的 key 相同。
+  slots.inject('sidebar.panellist', () =>
+    slots.register(
+      {
+        name: 'sidebar.panellist',
+        id: PANEL_ID,
+        order: PANEL_ORDER,
+        label: () => SETTINGS_LABEL,
+      },
+      ModelPickerPanelIcon,
+    ),
+  )
+  return true
+}
+
 // ─────────────────────────────── 入口 ───────────────────────────────
 
 export function apply(ctx?: any) {
   if (started) return
   started = true
+  if (ctx !== undefined && ctx !== null) clientCtx = ctx
   void loadCatalog()
   // 配置一起预取：设置页一打开就有内容，不必等用户点开再转圈。
   void loadConfig()
   startObserver()
   scheduleDecorate()
   registerSettingsSection(ctx)
+  // 侧边栏面板：注册失败不能拖垮整个插件（宿主半边缺失时静默降级，只留 beacon 记录）。
+  try {
+    if (!registerSidebarPanel(ctx)) beacon({ phase: 'panel-register-skipped', step: 'sidebar-panel' })
+  } catch (err) {
+    beacon({ phase: 'panel-register-failed', step: 'sidebar-panel', note: String((err as Error)?.message ?? err).slice(0, 300) })
+  }
   // 自建模型下拉：宿主下拉按 provider 分组、且未入组模型照样可选，只有抢下这个 single 槽
   // 才能做到「按用户分组展示 + 未入组不出现」。失败时保留 DOM 追加层作为兜底标注。
   try {
@@ -3532,6 +3860,10 @@ export function apply(ctx?: any) {
   pollTimer = setInterval(() => {
     void loadCatalog()
   }, POLL_MS)
+  // 待跳转轮询：node 半边建出新会话后，client 半边取走队列并跳过去。
+  setInterval(() => {
+    void loadPendingNavigation()
+  }, NAV_POLL_MS)
   window.addEventListener('focus', () => {
     void loadCatalog()
   }, { passive: true })

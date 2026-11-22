@@ -39,8 +39,10 @@ import {
   cooldownActive,
   cooldownRemaining,
   computeOccupancy,
-  decideOnError,
-  failureFaceOf,
+ decideEscalate,
+ decideOnError,
+ decideResume,
+ failureFaceOf,
   fieldsOf,
   groupCatalog,
   groupsOf,
@@ -137,6 +139,16 @@ export const Config = z.object({
   groupMode: z.string().default(DEFAULT_CONFIG.groupMode).volatile(),
   probeIntervalMin: z.natural().default(DEFAULT_CONFIG.probeIntervalMin).volatile(),
   modelEfforts: z.array(z.object({ key: z.string(), effort: z.string() })).default([]).volatile(),
+  autoResumeEnabled: z.boolean().default(DEFAULT_CONFIG.autoResumeEnabled!).volatile(),
+  autoResumeConsecutiveMax: z.natural().default(DEFAULT_CONFIG.autoResumeConsecutiveMax!).volatile(),
+  autoResumeSessionMax: z.natural().default(DEFAULT_CONFIG.autoResumeSessionMax!).volatile(),
+  autoResumeContinuePrompt: z.string().default(DEFAULT_CONFIG.autoResumeContinuePrompt!).volatile(),
+  escalateEnabled: z.boolean().default(DEFAULT_CONFIG.escalateEnabled!).volatile(),
+  escalateThresholdRatio: z.number().default(DEFAULT_CONFIG.escalateThresholdRatio!).volatile(),
+  escalateMaxChainDepth: z.natural().default(DEFAULT_CONFIG.escalateMaxChainDepth!).volatile(),
+  escalateContinuePrompt: z.string().default(DEFAULT_CONFIG.escalateContinuePrompt!).volatile(),
+  escalateArchiveParent: z.boolean().default(DEFAULT_CONFIG.escalateArchiveParent!).volatile(),
+  escalateRenameChild: z.boolean().default(DEFAULT_CONFIG.escalateRenameChild!).volatile(),
 })
 
 /**
@@ -245,6 +257,34 @@ const probeInfra = new Set<string>()
 /** 定时探测 timer 与防重叠标志：probeIntervalMin=0 默认不启用；配置写入触发 apply 重跑后新间隔生效。 */
 let probeTimer: any = null
 let probeRunning = false
+
+// ─────────────────────── 0.1.9 双能力运行时状态 ───────────────────────
+
+/** 续作账本：连续失败计数 / 整会话累计续作次数 / 已处理轮次水位（防旧轮重放）。宿主重启归零。 */
+interface ResumeLedgerEntry {
+  consecutive: number
+  session: number
+  lastHandledTurn: number | null
+}
+const resumeLedger = new Map<string, ResumeLedgerEntry>()
+
+/** 升级账本：已升级次数 / 链深 / 已升级到的子会话 / 最后一回合是否正常完成。宿主重启归零。 */
+interface EscalationLedgerEntry {
+  escalations: number
+  depth: number
+  escalatedTo: string | null
+  lastTurnCompleted: boolean
+}
+const escalationLedger = new Map<string, EscalationLedgerEntry>()
+
+/** 待跳转队列：新会话建成后写入；client 半边轮询 GET /pending-navigation 取走即清空。 */
+const pendingNavigation: string[] = []
+
+/** 允许小数的配置项：占比阈值不能走 Math.floor（0.85 会被取整成 0）。 */
+const DECIMAL_CONFIG_KEYS = new Set(['escalateThresholdRatio'])
+
+/** 续作消息的固定模板前缀（不拼错误原文）。 */
+const RESUME_TEXT_PREFIX = '上一次执行因错误中断，已自动恢复。'
 
 /**
  * 暂不可用集合持久化（需求④ m05678）：两类失败集合都落盘，DSH 重启沿用上次结果。
@@ -1223,6 +1263,435 @@ async function handleRequestError(payload: any): Promise<{ kind: 'retry' } | und
   return undefined
 }
 
+// ─────────────────────── 0.1.9 双能力：会话服务与运行时 ───────────────────────
+
+/** 动态解析宿主服务：缺失或抛错一律降级为 undefined（fail-closed，绝不阻断插件其它能力）。 */
+function svc(name: string): any {
+  try {
+    const ctx = ctxRef
+    if (ctx === undefined || ctx === null) return undefined
+    if (typeof ctx.get === 'function') {
+      const found = ctx.get(name)
+      if (found !== undefined && found !== null) return found
+    }
+    const direct = (ctx as any)[name]
+    return direct === undefined || direct === null ? undefined : direct
+  } catch {
+    return undefined
+  }
+}
+
+/** 续作/交接消息工厂：宿主在载时用真实 createUserMessage；离线门禁走逐字节镜像兜底。 */
+let userMessageFactory: ((input: any) => any) | null = null
+async function resolveCreateUserMessage(): Promise<(input: any) => any> {
+  if (userMessageFactory !== null) return userMessageFactory
+  try {
+    const mod: any = await import('@deepseek-ai/dsh-llm')
+    if (typeof mod?.createUserMessage === 'function') {
+      userMessageFactory = mod.createUserMessage
+      return userMessageFactory
+    }
+  } catch {
+    /* 离线门禁 / 解析失败 → 镜像兜底 */
+  }
+  const deepFreeze = (value: any): any => {
+    if (value !== null && typeof value === 'object') {
+      for (const item of Object.values(value)) deepFreeze(item)
+      Object.freeze(value)
+    }
+    return value
+  }
+  userMessageFactory = (input: any) => deepFreeze(structuredClone({ ...input, role: 'user', id: crypto.randomUUID() }))
+  return userMessageFactory
+}
+
+/** 失败是否指向「模型 / 端点不可用」——据此在续作前先切模型。认不准就不切（fail-closed）。 */
+function isModelUnavailableFailure(code: string, status: number | undefined): boolean {
+  if (code === 'NO_ADAPTER' || code === 'INVALID_MODEL_CONTEXT' || code === 'MODEL_UNSUPPORTED') return true
+  if (code === 'TRANSPORT' || code === 'STREAM_CLOSED') return true
+  if (typeof status === 'number' && (status === 404 || status === 502 || status === 503 || status === 504)) return true
+  return false
+}
+
+/** 失败是否是「用户主动中止 / 取消」——中止绝不续作。沿 cause 链最多看 3 层。 */
+function isAbortedFailure(error: unknown): boolean {
+  const seen = new Set<unknown>()
+  let cur: any = error
+  for (let depth = 0; depth < 3 && cur !== null && typeof cur === 'object' && !seen.has(cur); depth += 1) {
+    seen.add(cur)
+    const name = typeof cur.name === 'string' ? cur.name : ''
+    const code = typeof cur.code === 'string' ? cur.code : ''
+    const message = typeof cur.message === 'string' ? cur.message : ''
+    const hay = `${name} ${code} ${message}`.toLowerCase()
+    if (hay.includes('abort') || hay.includes('cancel')) return true
+    cur = cur.cause
+  }
+  return false
+}
+
+function pad2(value: number): string {
+  return value < 10 ? `0${value}` : String(value)
+}
+
+/**
+ * 能力 1：回合级错误处理（0.1.9）。
+ * fail-closed：开关关 / 非瞬时错误 / 用户中止 / 配额触顶 / 同一回合重复 → 一律不续作。
+ */
+async function handleAgentError(payload: any): Promise<void> {
+  try {
+    if (!cfg.enabled) return
+    const agent = payload?.agent
+    const sessionId = String(agent?.id ?? agent?.session?.id ?? '')
+    if (sessionId.length === 0) return
+    const turn = typeof payload?.turn === 'number' ? payload.turn : null
+    const error = payload?.error
+    const face = failureFaceOf(error)
+    const fields = fieldsOf(face)
+    const entry = resumeLedger.get(sessionId) ?? { consecutive: 0, session: 0, lastHandledTurn: null }
+    // 旧轮重放防护：同一回合只处理一次。
+    if (turn !== null && entry.lastHandledTurn === turn) return
+    const decision = decideResume({
+      cfg,
+      classification: classifyFailure(face),
+      // 回合级 = 宿主请求级重试链早已结束，此时续作是「开新回合」而非「叠加重试」，
+      // 所以不按宿主码表拦截（用户 2026-11-22 拍板：回合级视为宿主已放手）。
+      hostOwns: false,
+      aborted: isAbortedFailure(error),
+      consecutiveCount: entry.consecutive,
+      sessionCount: entry.session,
+      modelUnavailable: isModelUnavailableFailure(fields.code, fields.status),
+    })
+    if (decision.action !== 'resume') {
+      const record = log({
+        ts: Date.now(),
+        event: 'giveup',
+        sessionId,
+        turn: payload?.turn,
+        step: payload?.step,
+        reasonCode: decision.reasonCode,
+        reason: decision.reason,
+        failureCode: fields.code,
+        failureMessage: typeof error?.message === 'string' ? error.message : undefined,
+      })
+      recordToSession(agent?.session, record)
+      return
+    }
+    // 先切模型：仅当失败明确指向模型/端点不可用时，切到下一个健康模型。
+    if (decision.switchModel) {
+      try {
+        const now = Date.now()
+        const state = sessions.get(sessionId) ?? sessionState(sessionId, null, now)
+        const currentKey = agentSelectionKey(agent)
+        if (currentKey !== null && currentKey.length > 0 && !state.excluded.includes(currentKey)) {
+          state.excluded.push(currentKey)
+        }
+        sessions.set(sessionId, state)
+        await applySelection(agent, state.kind, 'resume-switch', { allowPreferred: false })
+      } catch (err) {
+        log({
+          ts: Date.now(),
+          event: 'giveup',
+          sessionId,
+          reasonCode: 'resume-switch-failed',
+          reason: '续作前切模型失败，沿用当前模型继续',
+          failureMessage: String((err as Error)?.message ?? err),
+        })
+      }
+    }
+    // 投递固定模板续作消息（不拼错误原文）。
+    const text = `${RESUME_TEXT_PREFIX}${cfg.autoResumeContinuePrompt ?? ''}`
+    const createUserMessage = await resolveCreateUserMessage()
+    const message = createUserMessage({
+      content: [{ type: 'text', text }],
+      source: { kind: 'plugin:dsh-model-picker' },
+    })
+    agent?.followup?.(message)
+    // 账本：连续计数 +1、整会话累计 +1、记下已处理轮次水位。
+    resumeLedger.set(sessionId, {
+      consecutive: entry.consecutive + 1,
+      session: entry.session + 1,
+      lastHandledTurn: turn,
+    })
+    const record = log({
+      ts: Date.now(),
+      event: 'resume',
+      sessionId,
+      turn: payload?.turn,
+      step: payload?.step,
+      reasonCode: decision.reasonCode,
+      reason: decision.reason,
+      failureCode: fields.code,
+      failureMessage: typeof error?.message === 'string' ? error.message : undefined,
+    })
+    recordToSession(agent?.session, record)
+  } catch (err) {
+    log({
+      ts: Date.now(),
+      event: 'giveup',
+      reasonCode: 'resume-internal-error',
+      reason: '自动继续内部异常，交回宿主',
+      failureMessage: String((err as Error)?.message ?? err),
+    })
+  }
+}
+
+/** 读取上下文占用：fail-closed —— 数据缺失一律 null（后续判定为「不动作」）。 */
+function readOccupancy(session: any): { occupancy: number | null; contextWindow: number | null } {
+  try {
+    const projections = svc('sessionProjections')
+    if (projections === undefined || typeof projections.snapshot !== 'function') {
+      return { occupancy: null, contextWindow: null }
+    }
+    const snapshot = projections.snapshot(session, ['contextPressure'])
+    const view = snapshot?.values?.contextPressure
+    if (view === undefined || view === null) return { occupancy: null, contextWindow: null }
+    const occupancy =
+      typeof view.projectedTokens === 'number'
+        ? view.projectedTokens
+        : typeof view.pressureTokens === 'number'
+          ? view.pressureTokens
+          : null
+    const contextWindow = typeof view.contextWindow === 'number' ? view.contextWindow : null
+    return { occupancy, contextWindow }
+  } catch {
+    return { occupancy: null, contextWindow: null }
+  }
+}
+
+/** 读会话标题（读不到就退回 session id）。 */
+function readSessionTitle(session: any): string | null {
+  try {
+    const titles = svc('sessionTitle')
+    const snap = titles?.get?.(session)
+    if (typeof snap?.title === 'string' && snap.title.trim() !== '') return snap.title
+  } catch {
+    /* 标题快照不可读 → 退回 session id */
+  }
+  return null
+}
+
+/** 交接文本模板：标准交接头 + 可配续作指令（不拼父会话正文、不含错误原文）。 */
+function buildHandoffText(seqNo: number, parentTitle: string, parentSessionId: string, continuePrompt: string): string {
+  const now = new Date()
+  const date = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`
+  const time = `${pad2(now.getHours())}:${pad2(now.getMinutes())}`
+  return (
+    `[交接] 你是第 ${seqNo} 次升级接棒会话。父会话：「${parentTitle}」(${parentSessionId})，交接时间 ${date} ${time}。\n` +
+    `父会话历史未随本会话继承，细节可回查父会话（session ${parentSessionId}）。\n` +
+    `${continuePrompt}`
+  )
+}
+
+/** 给新会话命名（可配）：按「父会话标题-日期-时间」。失败只记日志，不阻断升级。 */
+function renameChildSession(childSession: any, parentSession: any): void {
+  try {
+    const titles = svc('sessionTitle')
+    if (titles === undefined || typeof titles.rename !== 'function') return
+    if (childSession === undefined || childSession === null) return
+    const parentTitle = readSessionTitle(parentSession) ?? '会话'
+    const now = new Date()
+    const stamp = `${now.getFullYear()}${pad2(now.getMonth() + 1)}${pad2(now.getDate())}-${pad2(now.getHours())}${pad2(now.getMinutes())}`
+    titles.rename(childSession, `${parentTitle}-${stamp}`)
+  } catch (err) {
+    log({
+      ts: Date.now(),
+      event: 'escalate',
+      reasonCode: 'escalate-rename-failed',
+      reason: '给新会话命名失败，不影响升级结果',
+      failureMessage: String((err as Error)?.message ?? err),
+    })
+  }
+}
+
+/** 建新会话 + 交接 + 归档父会话 + 写待跳转队列（对齐宿主 controller fork 与 escalation 已验证顺序）。 */
+async function doEscalateSession(agent: any, parentSessionId: string, entry: EscalationLedgerEntry): Promise<void> {
+  const agentsSvc = svc('agents')
+  const create = agentsSvc?.create
+  if (typeof create !== 'function') return
+  const parentSession = agent?.session
+  const header = parentSession?.header ?? {}
+  const childId = `session-${crypto.randomUUID()}`
+  const seqNo = entry.escalations + 1
+  // 元数据只带 cwd / agentPreset —— 不设 parentSession：子会话与父会话同级独立。
+  const meta: Record<string, unknown> = {}
+  if (header.cwd !== undefined) meta.cwd = header.cwd
+  if (header.agentPreset !== undefined) meta.agentPreset = header.agentPreset
+  // 沿用父会话当前模型（认不准就交给宿主默认）。
+  const agentOptions: Record<string, unknown> = {}
+  try {
+    const current = agent?.model?.current?.()
+    if (current?.provider !== undefined && current?.model !== undefined) {
+      agentOptions.provider = current.provider
+      agentOptions.model = current.model
+      if (current.reasoningEffort !== undefined) agentOptions.reasoningEffort = current.reasoningEffort
+    }
+  } catch {
+    /* 探测失败 → 空 agentOptions，宿主默认兜底 */
+  }
+  let setup: any
+  try {
+    const presets = svc('agentPresets')
+    if (presets !== undefined && typeof presets.resolve === 'function' && typeof presets.mount === 'function') {
+      const resolved = await presets.resolve(header.agentPreset ?? undefined)
+      setup = async (agentCtx: any) => {
+        await presets.mount(agentCtx, resolved.id)
+      }
+    }
+  } catch {
+    /* preset 解析失败 → 不传 setup，宿主用默认 preset */
+  }
+  let handle: any
+  try {
+    handle = await create.call(agentsSvc, {
+      sessionId: childId,
+      meta,
+      ...(Object.keys(agentOptions).length === 0 ? {} : { agentOptions }),
+      ...(setup === undefined ? {} : { setup }),
+    })
+  } catch (err) {
+    log({
+      ts: Date.now(),
+      event: 'escalate',
+      sessionId: parentSessionId,
+      reasonCode: 'escalate-create-failed',
+      reason: '新会话建立失败，不升级',
+      failureMessage: String((err as Error)?.message ?? err),
+    })
+    return
+  }
+  const childAgent = handle?.agent ?? handle
+  // 把新会话挂到父会话所在的 workspace（对齐宿主 controller fork 配方 :301-311 与
+  // dsh-session-escalation :414-421）：不挂的话子会话不在会话列表里，用户在侧边栏看不到它。
+  // 失败只记日志 —— 分支已经建好，回滚代价更大。
+  try {
+    const registry = svc('workspaceRegistry')
+    const workspaces = typeof registry?.list === 'function' ? registry.list() : undefined
+    const workspace = Array.isArray(workspaces)
+      ? workspaces.find((candidate: any) => Array.isArray(candidate?.sessionIds) && candidate.sessionIds.includes(parentSessionId))
+      : undefined
+    if (workspace !== undefined && typeof workspace.attachSession === 'function') {
+      await workspace.attachSession(childId)
+    }
+  } catch (err) {
+    log({
+      ts: Date.now(),
+      event: 'escalate',
+      sessionId: parentSessionId,
+      to: childId,
+      reasonCode: 'escalate-attach-failed',
+      reason: '新会话挂到 workspace 失败（不影响升级结果）',
+      failureMessage: String((err as Error)?.message ?? err),
+    })
+  }
+  // 投递交接消息。
+  try {
+    const parentTitle = readSessionTitle(parentSession) ?? parentSessionId
+    const text = buildHandoffText(seqNo, parentTitle, parentSessionId, cfg.escalateContinuePrompt ?? '')
+    const createUserMessage = await resolveCreateUserMessage()
+    childAgent?.followup?.(
+      createUserMessage({
+        content: [{ type: 'text', text }],
+        source: { kind: 'plugin:dsh-model-picker', parentSessionId, boundarySeq: null },
+      }),
+    )
+  } catch (err) {
+    log({
+      ts: Date.now(),
+      event: 'escalate',
+      sessionId: parentSessionId,
+      reasonCode: 'escalate-handoff-failed',
+      reason: '交接消息投递失败，新会话已建立',
+      failureMessage: String((err as Error)?.message ?? err),
+    })
+  }
+  // 归档父会话：宿主原生可逆；失败只 warn，不回滚已建的新会话。
+  if (cfg.escalateArchiveParent !== false) {
+    try {
+      const registry = svc('workspaceRegistry')
+      if (registry === undefined || typeof registry.archiveSession !== 'function') {
+        log({
+          ts: Date.now(),
+          event: 'escalate',
+          sessionId: parentSessionId,
+          reasonCode: 'escalate-archive-unavailable',
+          reason: 'workspaceRegistry.archiveSession 缺席，旧会话不归档（保留在会话列表）',
+        })
+      } else {
+        await registry.archiveSession(parentSessionId, { stopActivity: true })
+      }
+    } catch (err) {
+      log({
+        ts: Date.now(),
+        event: 'escalate',
+        sessionId: parentSessionId,
+        reasonCode: 'escalate-archive-failed',
+        reason: '归档旧会话被拒（升级不受影响）',
+        failureMessage: String((err as Error)?.message ?? err),
+      })
+    }
+  }
+  if (cfg.escalateRenameChild !== false) renameChildSession(childAgent?.session, parentSession)
+  // 账本：父会话记已升级；子会话继承链深（+1）并拿到完整额度。
+  escalationLedger.set(parentSessionId, {
+    escalations: entry.escalations + 1,
+    depth: entry.depth,
+    escalatedTo: childId,
+    lastTurnCompleted: entry.lastTurnCompleted,
+  })
+  escalationLedger.set(childId, { escalations: 0, depth: entry.depth + 1, escalatedTo: null, lastTurnCompleted: false })
+  // 待跳转：client 半边轮询取走后跳到新会话。
+  pendingNavigation.push(childId)
+  log({
+    ts: Date.now(),
+    event: 'escalate',
+    sessionId: parentSessionId,
+    to: childId,
+    reasonCode: 'escalate-done',
+    reason: `已升级到新会话 ${childId}（链深 ${entry.depth + 1}）`,
+  })
+}
+
+/**
+ * 能力 2：上下文阈值升级评估（0.1.9）。
+ * fail-closed：服务缺失 / 占用数据缺失 / 回合未正常完成 / 会话繁忙 / 额度触顶 → 不动作。
+ */
+async function evaluateEscalationForSession(sessionId: string, trigger: string): Promise<void> {
+  try {
+    if (!cfg.enabled) return
+    if (cfg.escalateEnabled !== true) return
+    if (sessionId.length === 0) return
+    const entry = escalationLedger.get(sessionId) ?? { escalations: 0, depth: 0, escalatedTo: null, lastTurnCompleted: false }
+    // 只升级本插件自己发起的升级：一个会话已升级过就不再升级。
+    if (entry.escalatedTo !== null) return
+    const agentsSvc = svc('agents')
+    const agent =
+      agentsSvc !== undefined && typeof agentsSvc.get === 'function' ? agentsSvc.get(sessionId) : undefined
+    if (agent === undefined || agent === null) return
+    const { occupancy, contextWindow } = readOccupancy(agent.session)
+    const decision = decideEscalate({
+      cfg,
+      occupancy,
+      contextWindow,
+      chainDepth: entry.depth,
+      escalationsDone: entry.escalations,
+      agentIdle: agent.status === 'idle',
+      turnCompleted: entry.lastTurnCompleted,
+    })
+    if (decision.action !== 'escalate') return
+    await doEscalateSession(agent, sessionId, entry)
+    void trigger
+  } catch (err) {
+    log({
+      ts: Date.now(),
+      event: 'escalate',
+      sessionId,
+      reasonCode: 'escalate-internal-error',
+      reason: '升级评估内部异常，不动作',
+      failureMessage: String((err as Error)?.message ?? err),
+    })
+  }
+}
+
 function delay(ms: number, signal: any): Promise<void> {
   if (signal?.aborted === true) return Promise.resolve()
   return new Promise<void>((resolve) => {
@@ -1386,6 +1855,16 @@ function catalogView(snapshot: CatalogSnapshot) {
       requestRetryEnabled: cfg.requestRetryEnabled,
       requestRetryMax: cfg.requestRetryMax,
       requestRetryBackoffMs: cfg.requestRetryBackoffMs,
+      autoResumeEnabled: cfg.autoResumeEnabled,
+      autoResumeConsecutiveMax: cfg.autoResumeConsecutiveMax,
+      autoResumeSessionMax: cfg.autoResumeSessionMax,
+      autoResumeContinuePrompt: cfg.autoResumeContinuePrompt,
+      escalateEnabled: cfg.escalateEnabled,
+      escalateThresholdRatio: cfg.escalateThresholdRatio,
+      escalateMaxChainDepth: cfg.escalateMaxChainDepth,
+      escalateContinuePrompt: cfg.escalateContinuePrompt,
+      escalateArchiveParent: cfg.escalateArchiveParent,
+      escalateRenameChild: cfg.escalateRenameChild,
     },
   }
 }
@@ -1424,6 +1903,16 @@ const CONFIG_FIELDS = [
   { key: 'hiddenModels', type: 'models', label: '下拉展示：模型', hint: '勾选 = 出现在模型下拉；取消勾选写进 hiddenModels（只影响展示）' },
   { key: 'hiddenGroups', type: 'groups-list', label: '下拉展示：分组', hint: '整组隐藏 = 该组所有模型都不在模型下拉里出现' },
   { key: 'modelEfforts', type: 'models', label: '推理等级：模型', hint: '按模型预配置推理等级；手动选与自动切换都按此附带' },
+  { key: 'autoResumeEnabled', type: 'boolean', label: '错误自动继续', hint: '回合因瞬时错误失败后自动发起新一轮继续未完成的任务（默认关）' },
+  { key: 'autoResumeConsecutiveMax', type: 'number', label: '连续续作上限', hint: '同类错误连续失败达到该次数后不再自动继续（默认 3）' },
+  { key: 'autoResumeSessionMax', type: 'number', label: '整会话续作上限', hint: '一个会话内累计自动继续次数的上限（默认 10）' },
+  { key: 'autoResumeContinuePrompt', type: 'text', label: '续作指令', hint: '自动继续时附加给模型的任务说明（接在固定模板之后）' },
+  { key: 'escalateEnabled', type: 'boolean', label: '上下文升级会话', hint: '上下文占用超过阈值时新建会话继续任务并归档旧会话（默认关）' },
+  { key: 'escalateThresholdRatio', type: 'number', label: '升级阈值', hint: '上下文占用比例达到该值时升级（默认 0.85）' },
+  { key: 'escalateMaxChainDepth', type: 'number', label: '升级链层数上限', hint: '升级链最多多少层（默认 3）' },
+  { key: 'escalateContinuePrompt', type: 'text', label: '交接续作指令', hint: '新会话收到的交接说明（接在标准交接头之后）' },
+  { key: 'escalateArchiveParent', type: 'boolean', label: '升级后归档旧会话', hint: '升级成功后把旧会话归档（宿主原生可逆，默认开）' },
+  { key: 'escalateRenameChild', type: 'boolean', label: '给新会话命名', hint: '按「父会话-日期-时间」给新会话命名（默认开）' },
 ] as const
 
 /** 找到本插件在 profile 里的配置条目（用于把配置写回 cordis.patch.yml）。 */
@@ -1496,6 +1985,11 @@ function coercePatch(input: any): { next: Record<string, unknown>; changed: stri
     }
     if (field.type === 'number') {
       if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) continue
+      // 小数字段（占比阈值）不能向下取整：0.85 会被取整成 0 → 按 (0,1] 夹取。
+      if (DECIMAL_CONFIG_KEYS.has(key)) {
+        assign(key, Math.min(1, Math.max(0.01, value)))
+        continue
+      }
       const floored = Math.floor(value)
       assign(key, key === 'probeIntervalMin' ? Math.min(floored, 1440) : floored)
       continue
@@ -1902,6 +2396,13 @@ function createHandler() {
         return
       }
 
+      if (method === 'GET' && route === '/pending-navigation') {
+        // 取走即清空：client 半边拿到目标后负责跳过去；同一个 id 只推一次。
+        const targets = pendingNavigation.splice(0, pendingNavigation.length)
+        sendJson(res, 200, { targets })
+        return
+      }
+
       if (method === 'GET' && route === '/config') {
         sendJson(res, 200, configView())
         return
@@ -2258,8 +2759,38 @@ export function apply(ctx: any, config: any = {}) {
     refreshOccupancy('agent-disposed')
   })
 
-  ctx.on('agent/status', () => {
+  ctx.on('agent/status', (payload: any) => {
     refreshOccupancy('agent-status')
+    // 会话转空闲：若上一回合是正常完成的，再评估一次上下文阈值升级
+    //（turn/end 到达时 agent 可能仍在跑，那次评估会因忙碌而放弃）。
+    const idleSessionId = String(payload?.agent?.id ?? payload?.agent?.session?.id ?? '')
+    if (idleSessionId.length > 0) void evaluateEscalationForSession(idleSessionId, 'agent-idle')
+  })
+
+  // 0.1.9 能力 1：回合级错误 → 瞬时且配额未超时，自动发起新一轮继续未完成的任务。
+  ctx.on('agent/error', (payload: any) => {
+    void handleAgentError(payload)
+  })
+
+  // 0.1.9 能力 2：回合正常结束且上下文占用过阈值 → 新建会话继续任务并归档旧会话。
+  // error / aborted 的回合一律不评估（宿主 2026-11-18 事故：transport error 与用户 abort
+  // 触发升级评估，是连环升级的放大器）。
+  ctx.on('session/event', (session: any, event: any) => {
+    if (event?.type !== 'turn/end') return
+    const sessionId = String(session?.id ?? '')
+    if (sessionId.length === 0) return
+    const reasonKind = event?.data?.reason?.kind
+    const completed = reasonKind === undefined || reasonKind === 'completed'
+    const entry = escalationLedger.get(sessionId) ?? { escalations: 0, depth: 0, escalatedTo: null, lastTurnCompleted: false }
+    entry.lastTurnCompleted = completed
+    escalationLedger.set(sessionId, entry)
+    if (!completed) return
+    // 成功一次即清零「同类错误连续失败」计数（连续语义）。
+    const resumeEntry = resumeLedger.get(sessionId)
+    if (resumeEntry !== undefined && resumeEntry.consecutive !== 0) {
+      resumeLedger.set(sessionId, { ...resumeEntry, consecutive: 0 })
+    }
+    void evaluateEscalationForSession(sessionId, 'turn-end')
   })
 
   // 2) provider 集合变化 → 目录必须重建
@@ -2438,6 +2969,14 @@ export const __test = {
   PLUGIN_NAME,
   PLUGIN_VERSION,
   ROUTE_PREFIX,
+  decideResume,
+  decideEscalate,
+  handleAgentError,
+  evaluateEscalationForSession,
+  resumeLedger,
+  escalationLedger,
+  pendingNavigation,
+
   resolveConfig,
   readConfigRefs,
   Config,
