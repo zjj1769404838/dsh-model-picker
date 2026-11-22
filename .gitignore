@@ -10,6 +10,7 @@ data/
 
 # 误建空文件
 nul
+CON
 
 # 备份
 *.bak
